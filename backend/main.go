@@ -8,12 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	BUNKO_VERSION = "1.0.0"
+	BUNKO_DATABSE = "bunko.db"
+)
+
 func setupRouter() *gin.Engine {
 
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, BUNKO_VERSION)
 	})
 
 	return r
@@ -21,7 +26,7 @@ func setupRouter() *gin.Engine {
 
 func main() {
 
-	_, err := db.InitDb("bunko.db")
+	_, err := db.InitDb(BUNKO_DATABSE)
 
 	if err != nil {
 		log.Fatal(err)
