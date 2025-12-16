@@ -12,9 +12,6 @@ type Manga struct {
 	// If the manga is completed
 	Status string
 
-	// The provider of this manga
-	Provider *Provider
-
 	// Indiviual Chapters of that manga
 	Chapters []*Chapter
 

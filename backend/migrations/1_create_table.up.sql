@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `download_queue` (
     chapter_id
     url text,
     status text not null default 'pending',
+    provider text not null,
     foreign key (chapter_id)
         references chapter (chapter_id)
 );
