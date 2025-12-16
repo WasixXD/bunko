@@ -1,9 +1,10 @@
 
 CREATE TABLE IF NOT EXISTS `mangas` (
     manga_id integer primary key,
+    anilist_id integer,
     name text not null,
     slug text not null,
-    status text not null,
+    status text not null check (status in ("downloading", "pending", "completed")),
     provider text not null,
     created_at timestamp default (datetime('now'))
 );
