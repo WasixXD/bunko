@@ -34,12 +34,12 @@ func setupRouter(database *sql.DB) *gin.Engine {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		// TODO: SQL Injection?
-		if err := db.AddMangaToDB(database, json); err != nil {
+		id, err := db.AddMangaToDB(database, json)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		c.JSON(http.StatusCreated, gin.H{"msg": "Ok"})
+		c.JSON(http.StatusCreated, gin.H{"manga_id": id})
 	})
 
 	return r

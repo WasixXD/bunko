@@ -38,6 +38,10 @@ func (r *Resolver) checkNewManga() int {
 	return manga_id
 }
 
+func (r *Resolver) findChapters(manga_id int) {
+
+}
+
 func (r *Resolver) Work() {
 
 	for {
@@ -47,6 +51,9 @@ func (r *Resolver) Work() {
 			if manga_id == -1 {
 				continue
 			}
+			// Find Manga Chapters
+
+			go r.findChapters(manga_id)
 
 			r.WorkerChannel <- manga_id
 		}
