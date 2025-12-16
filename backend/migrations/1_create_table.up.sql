@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `chapter` (
     url text not null,
     foreign key (manga_id)
         references mangas (manga_id)
-)
+);
 
 
 CREATE TABLE IF NOT EXISTS `download_queue` (
