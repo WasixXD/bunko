@@ -39,7 +39,9 @@ func (m *Mangapill) Search(manga_name string) ([]string, error) {
 		}
 
 		href, _ := s.Attr("href")
-		links = append(links, href)
+
+		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, href)
+		links = append(links, fullUrl)
 	})
 
 	return links, nil
