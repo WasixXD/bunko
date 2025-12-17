@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"bunko/backend/downloader"
 	"bunko/backend/providers"
 	"database/sql"
 	"fmt"
@@ -13,7 +14,7 @@ type Resolver struct {
 	// Timer to check for new mangas
 	CheckMangaTimer time.Ticker
 	Database        *sql.DB
-	WorkerChannel   chan int
+	Downloaders     *downloader.DownloaderLock
 }
 
 func NewResolver(check time.Duration, db *sql.DB) *Resolver {
@@ -21,7 +22,7 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 	return &Resolver{
 		CheckMangaTimer: *time.NewTicker(check),
 		Database:        db,
-		WorkerChannel:   make(chan int),
+		Downloaders:     downloader.NewDownloaderBy(1, db),
 	}
 
 }
@@ -36,6 +37,7 @@ func (r *Resolver) checkNewManga() int {
 	}
 
 	log.Info("[Resolver] Found a new manga to download", "manga_id", manga_id)
+	// TODO: Maybe set status downloading after adding chapters do download queue
 	r.Database.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga_id)
 	return manga_id
 }
@@ -97,7 +99,9 @@ func (r *Resolver) Work() {
 			// Find Manga Chapters
 			r.findChapters(manga_id)
 
-			r.WorkerChannel <- manga_id
+			r.Downloaders.Mutex.Lock()
+			r.Downloaders.Cond.Broadcast()
+			r.Downloaders.Mutex.Unlock()
 		}
 
 	}

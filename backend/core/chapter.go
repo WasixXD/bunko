@@ -7,3 +7,11 @@ type Chapter struct {
 	// Url to find the chapter
 	Url string
 }
+
+type ChapterJobs struct {
+	MangaId  int
+	Name     string
+	Url      string
+	Status   string
+	Provider string
+}
