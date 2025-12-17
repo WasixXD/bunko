@@ -3,7 +3,10 @@ package mangapill
 import (
 	"bunko/backend/core"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -93,6 +96,51 @@ func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
 	return chapters, nil
 }
 
-func (m *Mangapill) DownloadChapter(url string) error {
+func (m *Mangapill) DownloadChapter(url, path, name string) error {
+
+	res, err := http.Get(url)
+
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+
+	if err != nil {
+		return err
+	}
+
+	doc.Find("chapter-page img").Each(func(i int, s *goquery.Selection) {
+		link, _ := s.Attr("data-src")
+
+		req, err := http.NewRequest(http.MethodGet, link, nil)
+
+		if err != nil {
+			return
+		}
+
+		req.Header.Set("Referer", MANGA_PILL_DEFAULT_URL)
+		res, err := http.DefaultClient.Do(req)
+
+		if err != nil {
+			return
+		}
+
+		b, _ := io.ReadAll(res.Body)
+		absPath := fmt.Sprintf("%s/%s/%d.jpeg", path, name, i+1)
+
+		dir := filepath.Dir(absPath)
+
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			return
+		}
+
+		if err := os.WriteFile(absPath, b, 0644); err != nil {
+			return
+		}
+
+	})
 	return nil
 }

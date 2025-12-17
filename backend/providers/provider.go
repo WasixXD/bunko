@@ -15,7 +15,7 @@ type Provider interface {
 	GetAllChapters(url string) ([]core.Chapter, error)
 
 	// Download all chapter images
-	DownloadChapter(url string) error
+	DownloadChapter(url, path, name string) error
 }
 
 type ProviderFactory struct {

@@ -2,9 +2,9 @@ package downloader
 
 import (
 	"bunko/backend/core"
+	"bunko/backend/providers"
 	"context"
 	"database/sql"
-	"fmt"
 	"sync"
 
 	"github.com/charmbracelet/log"
@@ -34,32 +34,31 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 	defer tx.Rollback()
 	jb := &core.ChapterJobs{}
 
-	sql := `
-        UPDATE download_queue
-            SET status = 'downloading'
-        WHERE status = 'pending'
-            ORDER BY manga_id
-            LIMIT 1
-        RETURNING manga_id, name, url, status, provider
+	sqlUpdate := `
+		UPDATE download_queue
+		SET status = 'downloading'
+		WHERE manga_id = (
+			SELECT manga_id
+			FROM download_queue
+			WHERE status = 'pending'
+			ORDER BY manga_id DESC
+			LIMIT 1
+		);
     `
+	_, err = tx.Exec(sqlUpdate)
 
-    UPDATE download_queue
-SET status = 'downloading'
-WHERE manga_id = (
-    SELECT manga_id
-    FROM download_queue
-    WHERE status = 'pending'
-    ORDER BY manga_id
-    LIMIT 1
-);
+	if err != nil {
+		return nil, err
+	}
 
-SELECT manga_id, name, url, status, provider
-FROM download_queue
-WHERE status = 'downloading'
-ORDER BY manga_id
-LIMIT 1;
-
-	row := tx.QueryRow(sql)
+	sqlSelect := `
+		SELECT manga_id, name, url, status, provider
+		FROM download_queue
+		WHERE status = 'downloading'
+		ORDER BY manga_id
+		LIMIT 1;
+	`
+	row := tx.QueryRow(sqlSelect)
 
 	err = row.Scan(
 		&jb.MangaId,
@@ -81,7 +80,6 @@ func (d *Downloader) Run() {
 	for {
 		job, err := d.ClaimChapter()
 
-		fmt.Println("Worker has no job, sleeping", job, err)
 		if err == sql.ErrNoRows || job == nil {
 			d.Mutex.Lock()
 			for {
@@ -98,8 +96,14 @@ func (d *Downloader) Run() {
 			continue
 		}
 
-		fmt.Println("job ->", job)
+		log.Info("[Downloader] downloading ", "chapter", job.Name)
+		factory := providers.NewProviderFactory()
+		provider := factory.Get(job.Provider)
 
+		provider.DownloadChapter(job.Url, "mangas", job.Name)
+
+		log.Info("[Downloader] Done!")
+		break
 	}
 }
 
