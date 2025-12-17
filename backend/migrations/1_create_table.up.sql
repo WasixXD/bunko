@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS `mangas` (
     slug text not null,
     status text not null check (status in ("downloading", "pending", "completed")),
     provider text not null,
+    cover_path text,
+    url text not null,
     created_at timestamp default (datetime('now'))
 );
 

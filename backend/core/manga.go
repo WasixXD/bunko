@@ -32,3 +32,13 @@ func NormalizeName(name string) string {
 	}
 	return strings.Join(newName, "")
 }
+
+// Struct to refer to tiny metadata that the backend will hold while the user is
+// choosing the manga, none of this columns may exist
+type MangaProps struct {
+	Name      string `json:"name"`
+	Year      string `json:"year"`
+	CoverPath string `json:"cover_path"`
+	Status    string `json:"status"`
+	Url       string `json:"url"`
+}

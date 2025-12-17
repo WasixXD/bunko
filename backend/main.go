@@ -2,6 +2,7 @@ package main
 
 import (
 	"bunko/backend/db"
+	"bunko/backend/providers"
 	"bunko/backend/resolver"
 	"bunko/backend/server"
 	"database/sql"
@@ -40,6 +41,15 @@ func setupRouter(database *sql.DB) *gin.Engine {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{"manga_id": id})
+	})
+
+	r.GET("/quick-search/manga", func(c *gin.Context) {
+		q := c.Query("q")
+
+		factory := providers.NewProviderFactory()
+		mangas := factory.FullSearch(q)
+
+		c.JSON(http.StatusOK, mangas)
 	})
 
 	return r

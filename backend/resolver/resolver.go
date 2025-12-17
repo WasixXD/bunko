@@ -1,9 +1,7 @@
 package resolver
 
 import (
-	"bunko/backend/providers"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -42,8 +40,6 @@ func (r *Resolver) checkNewManga() int {
 
 func (r *Resolver) findChapters(manga_id int) {
 
-	factory := providers.NewProviderFactory()
-
 	var providerName, slug string
 	sql := `
         SELECT provider, slug
@@ -55,21 +51,6 @@ func (r *Resolver) findChapters(manga_id int) {
 	if err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
 	}
-
-	provider := factory.Get(providerName)
-	urls, err := provider.Search(slug)
-
-	if err != nil {
-		log.Error("[Resolver.findChapters()] got error", "error", err)
-		return
-	}
-
-	fmt.Println("URLS:", urls)
-
-	// for chapter := range chapters {
-	// 	db.AddChapterToDB(Chapter)
-	// }
-
 }
 
 func (r *Resolver) Work() {
