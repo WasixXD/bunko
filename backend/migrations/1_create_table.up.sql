@@ -14,18 +14,19 @@ CREATE TABLE IF NOT EXISTS `mangas` (
 CREATE TABLE IF NOT EXISTS `chapter` (
     manga_id integer not null,
     chapter_id integer primary key,
-    chapter_n integer not null,
     url text not null,
+    name text not null,
     foreign key (manga_id)
         references mangas (manga_id)
 );
 
 
 CREATE TABLE IF NOT EXISTS `download_queue` (
-    chapter_id
-    url text,
-    status text not null default 'pending',
+    manga_id integer not null,
+    name text not null,
+    url text not null,
+    status text not null default 'pending' check (status in ("downloading", "pending", "completed", "error")),
     provider text not null,
-    foreign key (chapter_id)
-        references chapter (chapter_id)
+    foreign key (manga_id)
+        references mangas (manga_id)
 );

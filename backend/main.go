@@ -22,6 +22,7 @@ const (
 
 // TODO: Set up this is another file
 func setupRouter(database *sql.DB) *gin.Engine {
+	factory := providers.NewProviderFactory()
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
@@ -46,7 +47,6 @@ func setupRouter(database *sql.DB) *gin.Engine {
 	r.GET("/quick-search/manga", func(c *gin.Context) {
 		q := c.Query("q")
 
-		factory := providers.NewProviderFactory()
 		mangas := factory.FullSearch(q)
 
 		c.JSON(http.StatusOK, mangas)

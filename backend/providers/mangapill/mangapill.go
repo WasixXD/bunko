@@ -4,6 +4,7 @@ import (
 	"bunko/backend/core"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -60,7 +61,36 @@ func (m *Mangapill) Search(manga_name string) ([]core.MangaProps, error) {
 }
 
 func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
-	return nil, nil
+	chapters := []core.Chapter{}
+
+	res, err := http.Get(url)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	doc.Find("#chapters a").Each(func(i int, s *goquery.Selection) {
+
+		chapterUrl, _ := s.Attr("href")
+		title, _ := s.Attr("title")
+
+		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, chapterUrl)
+
+		chapters = append(chapters, core.Chapter{
+			Url:  fullUrl,
+			Name: strings.TrimSpace(title),
+		})
+	})
+
+	return chapters, nil
 }
 
 func (m *Mangapill) DownloadChapter(url string) error {

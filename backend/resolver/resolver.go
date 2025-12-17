@@ -1,7 +1,9 @@
 package resolver
 
 import (
+	"bunko/backend/providers"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -38,19 +40,48 @@ func (r *Resolver) checkNewManga() int {
 	return manga_id
 }
 
+// TODO: Refactor make the core functionalities more focused
 func (r *Resolver) findChapters(manga_id int) {
 
-	var providerName, slug string
+	var providerName, url string
 	sql := `
-        SELECT provider, slug
+        SELECT provider, url
         FROM mangas
         WHERE manga_id = ?
     `
-	err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &slug)
+	err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url)
 
 	if err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
+		return
 	}
+
+	factory := providers.NewProviderFactory()
+	provider := factory.Get(providerName)
+
+	chapters, err := provider.GetAllChapters(url)
+
+	if err != nil {
+		log.Error("[Resolver.findChapters()] got error", "error", err)
+		return
+	}
+
+	// Maybe this should be part of the db.operations package
+	insertIntoQueue := `
+		INSERT INTO download_queue(manga_id, name, url, status, provider)
+		VALUES (?, ?, ?, 'pending', ?)
+	`
+
+	for _, chapter := range chapters {
+		_, err := r.Database.Exec(insertIntoQueue, manga_id, chapter.Name, chapter.Url, providerName)
+
+		if err != nil {
+			log.Error("[Resolver.insertIntoQueue] got error", "error", err)
+			return
+		}
+	}
+
+	log.Info(fmt.Sprintf("[Resolver] Done! Added %d chapters into download queue", len(chapters)+1))
 }
 
 func (r *Resolver) Work() {

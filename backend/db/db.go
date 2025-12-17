@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/charmbracelet/log"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -60,6 +61,6 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("could not migrate: %w", err)
 	}
 
-	fmt.Println("Migrations applied!")
+	log.Info("Migrations applied!")
 	return nil
 }
