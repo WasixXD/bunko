@@ -5,6 +5,7 @@ import (
 	"bunko/backend/providers"
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 
 	"github.com/charmbracelet/log"
@@ -35,32 +36,21 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 	jb := &core.ChapterJobs{}
 
 	sqlUpdate := `
-		UPDATE download_queue
+	   UPDATE download_queue
 		SET status = 'downloading'
-		WHERE manga_id = (
-			SELECT manga_id
+		WHERE rowid = (
+			SELECT rowid
 			FROM download_queue
 			WHERE status = 'pending'
 			ORDER BY manga_id DESC
 			LIMIT 1
-		);
+		)
+		RETURNING rowid, manga_id, name, url, status, provider;
     `
-	_, err = tx.Exec(sqlUpdate)
-
-	if err != nil {
-		return nil, err
-	}
-
-	sqlSelect := `
-		SELECT manga_id, name, url, status, provider
-		FROM download_queue
-		WHERE status = 'downloading'
-		ORDER BY manga_id
-		LIMIT 1;
-	`
-	row := tx.QueryRow(sqlSelect)
+	row := tx.QueryRow(sqlUpdate)
 
 	err = row.Scan(
+		&jb.RowId,
 		&jb.MangaId,
 		&jb.Name,
 		&jb.Url,
@@ -75,7 +65,31 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 	return jb, tx.Commit()
 }
 
-func (d *Downloader) Run() {
+func (d *Downloader) SetAsCompleted(download_id int) error {
+	tx, err := d.Database.BeginTx(context.Background(), &sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+	})
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	sql := `
+		UPDATE download_queue
+		SET status = 'completed'
+		WHERE rowid = ?
+	`
+	_, err = tx.Exec(sql, download_id)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (d *Downloader) Run(worker_id int) {
 
 	for {
 		job, err := d.ClaimChapter()
@@ -96,14 +110,13 @@ func (d *Downloader) Run() {
 			continue
 		}
 
-		log.Info("[Downloader] downloading ", "chapter", job.Name)
+		log.Info(fmt.Sprintf("[Downloader:%d] downloading ", worker_id), "chapter", job.Name)
 		factory := providers.NewProviderFactory()
 		provider := factory.Get(job.Provider)
 
 		provider.DownloadChapter(job.Url, "mangas", job.Name)
-
+		d.SetAsCompleted(job.RowId)
 		log.Info("[Downloader] Done!")
-		break
 	}
 }
 
@@ -119,9 +132,9 @@ func NewDownloaderBy(n int, database *sql.DB) *DownloaderLock {
 	newMutex := sync.Mutex{}
 	newCond := sync.NewCond(&newMutex)
 
-	for range n {
+	for i := range n {
 		worker := NewDownloader(database, &newMutex, newCond)
-		go worker.Run()
+		go worker.Run(i)
 	}
 
 	return &DownloaderLock{
