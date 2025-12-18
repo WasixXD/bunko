@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -96,9 +97,9 @@ func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
 	return chapters, nil
 }
 
-func (m *Mangapill) DownloadChapter(url, path, name string) error {
+func (m *Mangapill) DownloadChapter(download_url, path_to_download, name string) error {
 
-	res, err := http.Get(url)
+	res, err := http.Get(download_url)
 
 	if err != nil {
 		return err
@@ -128,16 +129,21 @@ func (m *Mangapill) DownloadChapter(url, path, name string) error {
 			return
 		}
 
-		b, _ := io.ReadAll(res.Body)
-		absPath := fmt.Sprintf("%s/%s/%d.jpeg", path, name, i+1)
-
-		dir := filepath.Dir(absPath)
-
-		if err = os.MkdirAll(dir, 0755); err != nil {
+		if res.StatusCode != 200 {
+			fmt.Println("Got differente status code", res.StatusCode)
 			return
 		}
 
+		b, _ := io.ReadAll(res.Body)
+
+		u, _ := url.Parse(link)
+		last := path.Base(u.Path)
+
+		// ./manga_path/manga_name/chapter_name/image
+		absPath := fmt.Sprintf("%s%s", path_to_download, last)
+
 		if err := os.WriteFile(absPath, b, 0644); err != nil {
+			fmt.Println(err)
 			return
 		}
 

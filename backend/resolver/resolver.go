@@ -45,13 +45,13 @@ func (r *Resolver) checkNewManga() int {
 // TODO: Refactor make the core functionalities more focused
 func (r *Resolver) findChapters(manga_id int) {
 
-	var providerName, url string
+	var providerName, url, mangaPath string
 	sql := `
-        SELECT provider, url
+        SELECT provider, url, manga_path
         FROM mangas
         WHERE manga_id = ?
     `
-	err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url)
+	err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url, &mangaPath)
 
 	if err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
@@ -70,12 +70,14 @@ func (r *Resolver) findChapters(manga_id int) {
 
 	// Maybe this should be part of the db.operations package
 	insertIntoQueue := `
-		INSERT INTO download_queue(manga_id, name, url, status, provider)
-		VALUES (?, ?, ?, 'pending', ?)
+		INSERT INTO download_queue(manga_id, name, url, status, provider, path_to_download)
+		VALUES (?, ?, ?, 'pending', ?, ?)
 	`
 
 	for _, chapter := range chapters {
-		_, err := r.Database.Exec(insertIntoQueue, manga_id, chapter.Name, chapter.Url, providerName)
+		// By now we have ./manga_path/manga_name/chapter_name
+		path_to_download := fmt.Sprintf("%s/%s/", mangaPath, chapter.Name)
+		_, err := r.Database.Exec(insertIntoQueue, manga_id, chapter.Name, chapter.Url, providerName, path_to_download)
 
 		if err != nil {
 			log.Error("[Resolver.insertIntoQueue] got error", "error", err)

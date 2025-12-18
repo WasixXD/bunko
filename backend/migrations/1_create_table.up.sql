@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS `download_queue` (
     url text not null,
     status text not null default 'pending' check (status in ("downloading", "pending", "completed", "error")),
     provider text not null,
+    path_to_download text not null,
     foreign key (manga_id)
         references mangas (manga_id)
 );

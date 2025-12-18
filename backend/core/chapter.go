@@ -9,10 +9,11 @@ type Chapter struct {
 }
 
 type ChapterJobs struct {
-	RowId    int
-	MangaId  int
-	Name     string
-	Url      string
-	Status   string
-	Provider string
+	RowId          int
+	MangaId        int
+	Name           string
+	Url            string
+	Status         string
+	Provider       string
+	PathToDownload string
 }

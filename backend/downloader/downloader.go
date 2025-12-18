@@ -6,6 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/charmbracelet/log"
@@ -45,17 +47,16 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 			ORDER BY manga_id DESC
 			LIMIT 1
 		)
-		RETURNING rowid, manga_id, name, url, status, provider;
+		RETURNING rowid, name, url, provider, path_to_download;
     `
 	row := tx.QueryRow(sqlUpdate)
 
 	err = row.Scan(
 		&jb.RowId,
-		&jb.MangaId,
 		&jb.Name,
 		&jb.Url,
-		&jb.Status,
 		&jb.Provider,
+		&jb.PathToDownload,
 	)
 
 	if err != nil {
@@ -92,9 +93,9 @@ func (d *Downloader) SetAsCompleted(download_id int) error {
 func (d *Downloader) Run(worker_id int) {
 
 	for {
-		job, err := d.ClaimChapter()
+		chapter, err := d.ClaimChapter()
 
-		if err == sql.ErrNoRows || job == nil {
+		if err == sql.ErrNoRows || chapter == nil {
 			d.Mutex.Lock()
 			for {
 				d.Cond.Wait()
@@ -110,12 +111,20 @@ func (d *Downloader) Run(worker_id int) {
 			continue
 		}
 
-		log.Info(fmt.Sprintf("[Downloader:%d] downloading ", worker_id), "chapter", job.Name)
-		factory := providers.NewProviderFactory()
-		provider := factory.Get(job.Provider)
+		log.Info(fmt.Sprintf("[Downloader:%d] downloading ", worker_id), "chapter", chapter.Name)
 
-		provider.DownloadChapter(job.Url, "mangas", job.Name)
-		d.SetAsCompleted(job.RowId)
+		dir := filepath.Dir(chapter.PathToDownload)
+
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			log.Warn(err)
+			return
+		}
+
+		factory := providers.NewProviderFactory()
+		provider := factory.Get(chapter.Provider)
+
+		provider.DownloadChapter(chapter.Url, chapter.PathToDownload, chapter.Name)
+		d.SetAsCompleted(chapter.RowId)
 		log.Info("[Downloader] Done!")
 	}
 }
