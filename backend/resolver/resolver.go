@@ -28,7 +28,6 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 
 }
 
-// TODO: Read entire manga rather than just the id
 func (r *Resolver) checkNewManga() *core.Manga {
 
 	var manga core.Manga
@@ -85,7 +84,7 @@ func (r *Resolver) Work() {
 			}
 
 			// TODO: dont use manga here.
-			if err = db.AddMetadataToManga(r.Database, manga, *metadata); err != nil {
+			if err = db.AddMetadataToManga(r.Database, manga.MangaId, manga.Url, *metadata); err != nil {
 				log.Warn(err)
 				continue
 			}

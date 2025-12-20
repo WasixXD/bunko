@@ -64,7 +64,7 @@ func AddChaptersToQueue(db *sql.DB, manga_id int, manga_path string, chapters []
 
 }
 
-func AddMetadataToManga(db *sql.DB, manga *core.Manga, metadata core.AnilistMetadataResponse) error {
+func AddMetadataToManga(db *sql.DB, manga_id int, manga_url string, metadata core.AnilistMetadataResponse) error {
 
 	media := metadata.Data.Media
 	// TODO: Solve staff, tags and genres problem
@@ -89,8 +89,8 @@ func AddMetadataToManga(db *sql.DB, manga *core.Manga, metadata core.AnilistMeta
 		media.StartDate.Year,
 		media.StartDate.Month,
 		media.StartDate.Day,
-		manga.Url,
-		manga.MangaId,
+		manga_url,
+		manga_id,
 	)
 	return err
 
