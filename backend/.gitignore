@@ -1,3 +1,7 @@
 *.db
 
 mangas/*
+
+*.jpg
+*.png
+*.jpeg
