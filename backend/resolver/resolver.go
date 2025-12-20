@@ -84,6 +84,7 @@ func (r *Resolver) Work() {
 				continue
 			}
 
+			// TODO: dont use manga here.
 			if err = db.AddMetadataToManga(r.Database, manga, *metadata); err != nil {
 				log.Warn(err)
 				continue
@@ -96,7 +97,7 @@ func (r *Resolver) Work() {
 				continue
 			}
 
-			if err = db.AddChaptersToQueue(r.Database, manga.MangaId, manga.Name, chapters); err != nil {
+			if err = db.AddChaptersToQueue(r.Database, manga.MangaId, manga.Path, chapters); err != nil {
 				log.Warn(err)
 				continue
 			}
