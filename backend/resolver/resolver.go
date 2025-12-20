@@ -1,10 +1,11 @@
 package resolver
 
 import (
+	"bunko/backend/core"
+	"bunko/backend/db"
 	"bunko/backend/downloader"
 	"bunko/backend/providers"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -27,65 +28,41 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 
 }
 
-func (r *Resolver) checkNewManga() int {
+// TODO: Read entire manga rather than just the id
+func (r *Resolver) checkNewManga() *core.Manga {
 
-	var manga_id int
-	r.Database.QueryRow("SELECT manga_id FROM mangas WHERE status = 'pending'").Scan(&manga_id)
+	var manga core.Manga
+	r.Database.QueryRow("SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'").
+		Scan(&manga.MangaId, &manga.Name, &manga.Path, &manga.Provider, &manga.Status, &manga.Url)
 
-	if manga_id == 0 {
-		return -1
+	if manga.MangaId == 0 {
+		return nil
 	}
 
-	log.Info("[Resolver] Found a new manga to download", "manga_id", manga_id)
-	// TODO: Maybe set status downloading after adding chapters do download queue
-	r.Database.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga_id)
-	return manga_id
+	log.Info("[Resolver] Found a new manga to download", "manga_id", manga.MangaId)
+	return &manga
 }
 
 // TODO: Refactor make the core functionalities more focused
-func (r *Resolver) findChapters(manga_id int) {
+func (r *Resolver) findChapters(manga_id int) ([]core.Chapter, error) {
 
-	var providerName, url, mangaPath string
+	var providerName, url string
 	sql := `
-        SELECT provider, url, manga_path
+        SELECT provider, url
         FROM mangas
         WHERE manga_id = ?
     `
-	err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url, &mangaPath)
 
-	if err != nil {
+	if err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url); err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
-		return
+		return nil, err
 	}
 
 	factory := providers.NewProviderFactory()
 	provider := factory.Get(providerName)
 
-	chapters, err := provider.GetAllChapters(url)
+	return provider.GetAllChapters(url)
 
-	if err != nil {
-		log.Error("[Resolver.findChapters()] got error", "error", err)
-		return
-	}
-
-	// Maybe this should be part of the db.operations package
-	insertIntoQueue := `
-		INSERT INTO download_queue(manga_id, name, url, status, provider, path_to_download)
-		VALUES (?, ?, ?, 'pending', ?, ?)
-	`
-
-	for _, chapter := range chapters {
-		// By now we have ./manga_path/manga_name/chapter_name
-		path_to_download := fmt.Sprintf("%s/%s/", mangaPath, chapter.Name)
-		_, err := r.Database.Exec(insertIntoQueue, manga_id, chapter.Name, chapter.Url, providerName, path_to_download)
-
-		if err != nil {
-			log.Error("[Resolver.insertIntoQueue] got error", "error", err)
-			return
-		}
-	}
-
-	log.Info(fmt.Sprintf("[Resolver] Done! Added %d chapters into download queue", len(chapters)+1))
 }
 
 func (r *Resolver) Work() {
@@ -93,14 +70,40 @@ func (r *Resolver) Work() {
 	for {
 		select {
 		case <-r.CheckMangaTimer.C:
-			manga_id := r.checkNewManga()
-			if manga_id == -1 {
+			// TODO: Use transaction in case that the errors happened after operations
+			manga := r.checkNewManga()
+
+			if manga == nil {
 				continue
 			}
 
-			// Find Manga Chapters
-			r.findChapters(manga_id)
+			metadata, err := core.AnilistMetadataQuery(manga.Name)
 
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+
+			if err = db.AddMetadataToManga(r.Database, manga, *metadata); err != nil {
+				log.Warn(err)
+				continue
+			}
+
+			chapters, err := r.findChapters(manga.MangaId)
+
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+
+			if err = db.AddChaptersToQueue(r.Database, manga.MangaId, manga.Name, chapters); err != nil {
+				log.Warn(err)
+				continue
+			}
+
+			r.Database.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga.MangaId)
+
+			// Notify workers
 			r.Downloaders.Mutex.Lock()
 			r.Downloaders.Cond.Broadcast()
 			r.Downloaders.Mutex.Unlock()

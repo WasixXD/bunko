@@ -10,6 +10,17 @@ CREATE TABLE IF NOT EXISTS `mangas` (
     cover_path text,
     manga_path text not null,
 
+    localized_name text,
+    publication_status text,
+    summary text,
+    start_year int,
+    start_month int,
+    start_day int,
+    author text,
+    art text,
+    web_link text,
+    metadata_updated_at timestamp,
+
     created_at timestamp default (datetime('now'))
 );
 

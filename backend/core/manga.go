@@ -2,21 +2,19 @@ package core
 
 import "strings"
 
+// This struct represents the main information from database mangas table
 type Manga struct {
-	// Manga name
+	MangaId int
+
 	Name string
 
-	// Manga name in a snake-case way
-	Slug string
-
-	// If the manga is completed
 	Status string
 
-	// Indiviual Chapters of that manga
-	Chapters []*Chapter
+	Provider string
 
-	// The amount of chapters
-	ChaptersAmount int
+	Url string
+
+	Path string
 }
 
 func NormalizeName(name string) string {

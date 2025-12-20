@@ -6,6 +6,8 @@ type Chapter struct {
 
 	// Url to find the chapter
 	Url string
+
+	Provider string
 }
 
 type ChapterJobs struct {

@@ -14,6 +14,7 @@ import (
 )
 
 const MANGA_PILL_DEFAULT_URL = "https://mangapill.com"
+const MANGA_PILL = "mangapill"
 
 type Mangapill struct {
 }
@@ -89,8 +90,9 @@ func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
 		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, chapterUrl)
 
 		chapters = append(chapters, core.Chapter{
-			Url:  fullUrl,
-			Name: strings.TrimSpace(title),
+			Url:      fullUrl,
+			Name:     strings.TrimSpace(title),
+			Provider: MANGA_PILL,
 		})
 	})
 
