@@ -142,7 +142,7 @@ func (m *Mangapill) DownloadChapter(download_url, path_to_download, name string)
 		last := path.Base(u.Path)
 
 		// ./manga_path/manga_name/chapter_name/image
-		absPath := fmt.Sprintf("%s%s", path_to_download, last)
+		absPath := fmt.Sprintf("%s/%s", path_to_download, last)
 
 		if err := os.WriteFile(absPath, b, 0644); err != nil {
 			fmt.Println(err)

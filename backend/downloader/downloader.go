@@ -1,11 +1,14 @@
 package downloader
 
 import (
+	"archive/zip"
 	"bunko/backend/core"
 	"bunko/backend/providers"
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -90,6 +93,82 @@ func (d *Downloader) SetAsCompleted(download_id int) error {
 	return tx.Commit()
 }
 
+func (d *Downloader) TurnIntoCbz(source string) error {
+	target := fmt.Sprintf("%s.cbz", source)
+
+	zip_file, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+
+	defer zip_file.Close()
+
+	archive := zip.NewWriter(zip_file)
+	defer archive.Close()
+
+	err = filepath.Walk(source, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		header, err := zip.FileInfoHeader(info)
+
+		if err != nil {
+			return err
+		}
+
+		header.Name, err = filepath.Rel(filepath.Dir(source), path)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			header.Name += "/"
+		}
+
+		writer, err := archive.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(writer, file)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
 func (d *Downloader) Run(worker_id int) {
 
 	for {
@@ -113,7 +192,7 @@ func (d *Downloader) Run(worker_id int) {
 
 		log.Info(fmt.Sprintf("[Downloader:%d] downloading ", worker_id), "chapter", chapter.Name)
 
-		dir := filepath.Dir(chapter.PathToDownload)
+		dir := filepath.Dir(chapter.PathToDownload + "/")
 
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			log.Warn(err)
@@ -124,7 +203,24 @@ func (d *Downloader) Run(worker_id int) {
 		provider := factory.Get(chapter.Provider)
 
 		provider.DownloadChapter(chapter.Url, chapter.PathToDownload, chapter.Name)
-		d.SetAsCompleted(chapter.RowId)
+
+		old_path := fmt.Sprintf("%s/../cover.jpg", chapter.PathToDownload)
+		new_path := fmt.Sprintf("%s/cover.jpg", chapter.PathToDownload)
+		if err = copyFile(old_path, new_path); err != nil {
+			log.Warn(err)
+			return
+		}
+
+		if err = d.TurnIntoCbz(chapter.PathToDownload); err != nil {
+			log.Warn(err)
+			return
+		}
+
+		if err = d.SetAsCompleted(chapter.RowId); err != nil {
+			log.Warn(err)
+			return
+		}
+
 		log.Info("[Downloader] Done!")
 	}
 }

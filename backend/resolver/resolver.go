@@ -6,6 +6,11 @@ import (
 	"bunko/backend/downloader"
 	"bunko/backend/providers"
 	"database/sql"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -64,15 +69,58 @@ func (r *Resolver) findChapters(manga_id int) ([]core.Chapter, error) {
 
 }
 
+// Seems likely that anilist just set the covers as jpg
+func (r *Resolver) downloadCover(manga_path, url string) error {
+
+	absPath := fmt.Sprintf("%s/cover.jpg", manga_path)
+
+	file, err := os.Create(absPath)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Get(url)
+
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	b, _ := io.ReadAll(res.Body)
+
+	_, err = file.Write(b)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *Resolver) Work() {
 
 	for {
 		select {
+		// 1. Check if a new Manga was Added to Database
+		// 2. Get Metadata of the manga and save on the Database
+		// 3. Create Directory
+		// 4. Get Cover Image
+		// 5. Add Jobs to Database
+		// 6. Notify Workers
 		case <-r.CheckMangaTimer.C:
+			//
 			// TODO: Use transaction in case that the errors happened after operations
 			manga := r.checkNewManga()
 
 			if manga == nil {
+				continue
+			}
+
+			dir := filepath.Dir(manga.Path + "/")
+
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				log.Warn(err)
 				continue
 			}
 
@@ -83,7 +131,11 @@ func (r *Resolver) Work() {
 				continue
 			}
 
-			// TODO: dont use manga here.
+			if err = r.downloadCover(manga.Path, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+				log.Warn(err)
+				continue
+			}
+
 			if err = db.AddMetadataToManga(r.Database, manga.MangaId, manga.Url, *metadata); err != nil {
 				log.Warn(err)
 				continue
@@ -108,7 +160,6 @@ func (r *Resolver) Work() {
 			r.Downloaders.Cond.Broadcast()
 			r.Downloaders.Mutex.Unlock()
 		}
-
 	}
 
 }

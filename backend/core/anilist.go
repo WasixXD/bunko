@@ -31,6 +31,11 @@ type AnilistMetadataResponse struct {
 			Tags   []struct {
 				Name string `json:"name"`
 			} `json:"tags"`
+			CoverImage struct {
+				ExtraLarge string `json:"extraLarge"`
+				Large      string `json:"large"`
+				Medium     string `json:"medium"`
+			} `json:"coverImage"`
 			Staff struct {
 				Edges []struct {
 					Role string `json:"role"`
@@ -66,6 +71,11 @@ func AnilistMetadataQuery(title string) (*AnilistMetadataResponse, error) {
             tags {
                 name
             }
+			coverImage {
+				extraLarge
+				large
+				medium
+			}
             staff {
                 edges {
                     role

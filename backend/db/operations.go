@@ -41,7 +41,7 @@ func AddChaptersToQueue(db *sql.DB, manga_id int, manga_path string, chapters []
 	i := 0
 	for _, chapter := range chapters {
 		// By now we have ./manga_path/manga_name/chapter_name
-		path_to_download := fmt.Sprintf("%s/%s/", manga_path, chapter.Name)
+		path_to_download := fmt.Sprintf("%s/%s", manga_path, chapter.Name)
 
 		_, err := db.Exec(
 			sql,
