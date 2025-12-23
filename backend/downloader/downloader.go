@@ -205,7 +205,7 @@ func (d *Downloader) Run(worker_id int) {
 		provider.DownloadChapter(chapter.Url, chapter.PathToDownload, chapter.Name)
 
 		old_path := fmt.Sprintf("%s/../cover.jpg", chapter.PathToDownload)
-		new_path := fmt.Sprintf("%s/cover.jpg", chapter.PathToDownload)
+		new_path := fmt.Sprintf("%s/0.jpg", chapter.PathToDownload)
 		if err = copyFile(old_path, new_path); err != nil {
 			log.Warn(err)
 			return
