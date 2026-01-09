@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 const (
 	BUNKO_VERSION = "1.0.0"
 	BUNKO_DATABSE = "bunko.db"
