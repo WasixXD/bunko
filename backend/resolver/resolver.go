@@ -98,68 +98,85 @@ func (r *Resolver) downloadCover(manga_path, url string) error {
 	return nil
 }
 
-func (r *Resolver) Work() {
+func (r *Resolver) notifyWorkers() {
+	r.Downloaders.Mutex.Lock()
+	r.Downloaders.Cond.Broadcast()
+	r.Downloaders.Mutex.Unlock()
+}
 
-	for {
-		select {
-		// 1. Check if a new Manga was Added to Database
-		// 2. Get Metadata of the manga and save on the Database
-		// 3. Create Directory
-		// 4. Get Cover Image
-		// 5. Add Jobs to Database
-		// 6. Notify Workers
-		case <-r.CheckMangaTimer.C:
-			//
-			// TODO: Use transaction in case that the errors happened after operations
-			manga := r.checkNewManga()
+func (r *Resolver) persistMangaData(
+	manga *core.Manga,
+	metadata *core.AnilistMetadataResponse,
+	chapters []core.Chapter,
+) error {
 
-			if manga == nil {
-				continue
-			}
-
-			dir := filepath.Dir(manga.Path + "/")
-
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			metadata, err := core.AnilistMetadataQuery(manga.Name)
-
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			if err = r.downloadCover(manga.Path, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			if err = db.AddMetadataToManga(r.Database, manga.MangaId, manga.Url, *metadata); err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			chapters, err := r.findChapters(manga.MangaId)
-
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			if err = db.AddChaptersToQueue(r.Database, manga.MangaId, manga.Path, chapters); err != nil {
-				log.Warn(err)
-				continue
-			}
-
-			r.Database.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga.MangaId)
-
-			// Notify workers
-			r.Downloaders.Mutex.Lock()
-			r.Downloaders.Cond.Broadcast()
-			r.Downloaders.Mutex.Unlock()
-		}
+	tx, err := r.Database.Begin()
+	if err != nil {
+		return err
 	}
 
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err = db.AddMetadataToManga(tx, manga.MangaId, manga.Url, *metadata); err != nil {
+		return err
+	}
+
+	if err = db.AddChaptersToQueue(tx, manga.MangaId, manga.Path, chapters); err != nil {
+		return err
+	}
+
+	if _, err = tx.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga.MangaId); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (r *Resolver) prepareFilesystem(manga *core.Manga) error {
+	dir := filepath.Dir(manga.Path + "/")
+	return os.MkdirAll(dir, 0755)
+}
+
+func (r *Resolver) processNextManga() error {
+	manga := r.checkNewManga()
+	if manga == nil {
+		return nil
+	}
+
+	if err := r.prepareFilesystem(manga); err != nil {
+		return err
+	}
+
+	metadata, err := core.AnilistMetadataQuery(manga.Name)
+	if err != nil {
+		return err
+	}
+
+	if err := r.downloadCover(manga.Path, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+		return err
+	}
+
+	chapters, err := r.findChapters(manga.MangaId)
+	if err != nil {
+		return err
+	}
+
+	if err := r.persistMangaData(manga, metadata, chapters); err != nil {
+		return err
+	}
+
+	r.notifyWorkers()
+	return nil
+}
+
+func (r *Resolver) Work() {
+	for range r.CheckMangaTimer.C {
+		if err := r.processNextManga(); err != nil {
+			log.Warn(err)
+		}
+	}
 }

@@ -32,45 +32,62 @@ func AddMangaToDB(db *sql.DB, manga server.MangaPost) (int, error) {
 	return manga_id, err
 }
 
-func AddChaptersToQueue(db *sql.DB, manga_id int, manga_path string, chapters []core.Chapter) error {
-	sql := `
-		INSERT INTO download_queue(manga_id, name, url, status, provider, path_to_download)
-		VALUES (?, ?, ?, 'pending', ?, ?)
+func AddChaptersToQueue(
+	tx *sql.Tx,
+	mangaID int,
+	mangaPath string,
+	chapters []core.Chapter,
+) error {
+
+	const query = `
+		INSERT INTO download_queue
+			(manga_id, name, url, status, provider, path_to_download)
+		VALUES
+			(?, ?, ?, 'pending', ?, ?)
 	`
 
-	i := 0
 	for _, chapter := range chapters {
-		// By now we have ./manga_path/manga_name/chapter_name
-		path_to_download := fmt.Sprintf("%s/%s", manga_path, chapter.Name)
+		pathToDownload := fmt.Sprintf("%s/%s", mangaPath, chapter.Name)
 
-		_, err := db.Exec(
-			sql,
-			manga_id,
+		if _, err := tx.Exec(
+			query,
+			mangaID,
 			chapter.Name,
 			chapter.Url,
 			chapter.Provider,
-			path_to_download,
-		)
-
-		if err != nil {
-			log.Error("[Resolver.insertIntoQueue] got error", "error", err)
+			pathToDownload,
+		); err != nil {
+			log.Error(
+				"[db.AddChaptersToQueue] failed to insert chapter",
+				"chapter", chapter.Name,
+				"error", err,
+			)
 			return err
 		}
-		i++
 	}
 
-	log.Info(fmt.Sprintf("Done! Added %d chapters into download queue", i))
-	return nil
+	log.Info(
+		"[db.AddChaptersToQueue] chapters enqueued",
+		"count", len(chapters),
+		"manga_id", mangaID,
+	)
 
+	return nil
 }
 
-func AddMetadataToManga(db *sql.DB, manga_id int, manga_url string, metadata core.AnilistMetadataResponse) error {
+func AddMetadataToManga(
+	tx *sql.Tx,
+	mangaID int,
+	mangaURL string,
+	metadata core.AnilistMetadataResponse,
+) error {
 
 	media := metadata.Data.Media
-	// TODO: Solve staff, tags and genres problem
-	sql := `
+
+	const query = `
 		UPDATE mangas
-		SET localized_name = ?,
+		SET
+			localized_name = ?,
 			publication_status = ?,
 			summary = ?,
 			start_year = ?,
@@ -79,19 +96,27 @@ func AddMetadataToManga(db *sql.DB, manga_id int, manga_url string, metadata cor
 			web_link = ?,
 			metadata_updated_at = datetime('now')
 		WHERE manga_id = ?
-		`
+	`
 
-	_, err := db.Exec(
-		sql,
+	_, err := tx.Exec(
+		query,
 		media.Title.Native,
 		media.Status,
 		media.Description,
 		media.StartDate.Year,
 		media.StartDate.Month,
 		media.StartDate.Day,
-		manga_url,
-		manga_id,
+		mangaURL,
+		mangaID,
 	)
-	return err
 
+	if err != nil {
+		log.Error(
+			"[db.AddMetadataToManga] failed to update metadata",
+			"manga_id", mangaID,
+			"error", err,
+		)
+	}
+
+	return err
 }
