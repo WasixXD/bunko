@@ -149,7 +149,7 @@ func (d *Downloader) TurnIntoCbz(source string) error {
 		return err
 	}
 
-	return nil
+	return os.RemoveAll(source)
 }
 
 func copyFile(src, dst string) error {
