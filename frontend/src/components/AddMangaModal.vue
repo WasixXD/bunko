@@ -13,8 +13,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
   SelectGroup,
   SelectItem,
   SelectLabel,
@@ -29,34 +27,6 @@ defineProps({
 })
 
 
-query MangaInfo {
-  Media(type: MANGA, search: "Blue lock") {
-    id
-    genres
-    status
-    averageScore
-    coverImage {
-      extraLarge
-      large
-      medium
-      color
-    }
-    description(asHtml: false)
-    bannerImage
-    volumes
-    chapters
-    popularity
-    startDate {
-      year
-      month
-      day
-    }
-    tags {
-      name
-      id
-    }
-  }
-}
 
 </script>
 
