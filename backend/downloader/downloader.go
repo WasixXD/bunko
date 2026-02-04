@@ -172,7 +172,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func (d *Downloader) CreateComicInfo(manga_id int, chapter_name string) *core.ComicInfo {
+func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path string) error {
 
 	comic := core.ComicInfo{}
 	sql := `
@@ -201,7 +201,16 @@ func (d *Downloader) CreateComicInfo(manga_id int, chapter_name string) *core.Co
 	)
 	comic.Title = chapter_name
 
-	return &comic
+	info, err := xml.MarshalIndent(comic, " ", "  ")
+
+	if err != nil {
+		return err
+	}
+
+	comicInfoPath := fmt.Sprintf("%s/comicinfo.xml", chapter_path)
+	os.WriteFile(comicInfoPath, info, 0755)
+
+	return nil
 }
 
 func (d *Downloader) Run(worker_id int) {
@@ -246,11 +255,11 @@ func (d *Downloader) Run(worker_id int) {
 			return
 		}
 
-		metadata := d.CreateComicInfo(chapter.MangaId, chapter.Name)
+		if err = d.CreateComicInfo(chapter.MangaId, chapter.Name, chapter.PathToDownload); err != nil {
+			log.Warn(err)
+			return
+		}
 
-		info, err := xml.MarshalIndent(metadata, " ", "  ")
-		comicInfoPath := fmt.Sprintf("%s/comicinfo.xml", chapter.PathToDownload)
-		os.WriteFile(comicInfoPath, info, 0755)
 		if err = d.TurnIntoCbz(chapter.PathToDownload); err != nil {
 			log.Warn(err)
 			return
