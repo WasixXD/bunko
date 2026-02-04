@@ -48,7 +48,6 @@ func (m *Mangapill) Search(manga_name string) ([]core.MangaProps, error) {
 
 		meta := s.Find("div.flex.flex-wrap > div")
 
-		// TODO: Should download the cover image? Cache?
 		img, _ := s.Find("img.object-cover").Attr("src")
 
 		prop := core.MangaProps{
