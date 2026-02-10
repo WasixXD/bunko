@@ -1,4 +1,4 @@
-package core
+package structs
 
 type ComicInfo struct {
 	Title           string `xml:"Title"` // chapter title

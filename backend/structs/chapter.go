@@ -1,4 +1,4 @@
-package core
+package structs
 
 type Chapter struct {
 	// Name of the chapter

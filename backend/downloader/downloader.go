@@ -2,8 +2,8 @@ package downloader
 
 import (
 	"archive/zip"
-	"bunko/backend/core"
 	"bunko/backend/providers"
+	"bunko/backend/structs"
 	"context"
 	"database/sql"
 	"encoding/xml"
@@ -29,7 +29,7 @@ type DownloaderLock struct {
 	NWorkers int
 }
 
-func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
+func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
 
 	tx, err := d.Database.BeginTx(context.Background(), &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -39,7 +39,7 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 	}
 
 	defer tx.Rollback()
-	jb := &core.ChapterJobs{}
+	jb := &structs.ChapterJobs{}
 
 	sqlUpdate := `
 	   UPDATE download_queue
@@ -174,7 +174,7 @@ func copyFile(src, dst string) error {
 
 func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path string) error {
 
-	comic := core.ComicInfo{}
+	comic := structs.ComicInfo{}
 	sql := `
 		SELECT 
 			name, localized_name, web_link,

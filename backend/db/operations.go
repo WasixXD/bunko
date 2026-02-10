@@ -1,20 +1,19 @@
 package db
 
 import (
-	"bunko/backend/core"
-	"bunko/backend/server"
+	"bunko/backend/structs"
 	"database/sql"
 	"fmt"
 
 	"github.com/charmbracelet/log"
 )
 
-func AddMangaToDB(db *sql.DB, manga server.MangaPost) (int, error) {
+func AddMangaToDB(db *sql.DB, manga structs.MangaPost) (int, error) {
 
 	var manga_id int
 	// ./manga_path/manga_name
 	absPath := fmt.Sprintf("%s/%s", manga.MangaPath, manga.Name)
-	slug := core.NormalizeName(manga.Name)
+	slug := structs.NormalizeName(manga.Name)
 	// TODO: Make this a transaction?
 	sql := `INSERT INTO 
 				mangas(name, slug, provider, status, url, manga_path) 
@@ -36,7 +35,7 @@ func AddChaptersToQueue(
 	tx *sql.Tx,
 	mangaID int,
 	mangaPath string,
-	chapters []core.Chapter,
+	chapters []structs.Chapter,
 ) error {
 
 	const query = `
@@ -79,7 +78,7 @@ func AddMetadataToManga(
 	tx *sql.Tx,
 	mangaID int,
 	mangaURL string,
-	metadata core.AnilistMetadataResponse,
+	metadata structs.AnilistMetadataResponse,
 ) error {
 
 	media := metadata.Data.Media

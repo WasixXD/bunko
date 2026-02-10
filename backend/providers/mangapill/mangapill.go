@@ -1,7 +1,7 @@
 package mangapill
 
 import (
-	"bunko/backend/core"
+	"bunko/backend/structs"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,9 +19,9 @@ const MANGA_PILL = "mangapill"
 type Mangapill struct {
 }
 
-func (m *Mangapill) Search(manga_name string) ([]core.MangaProps, error) {
+func (m *Mangapill) Search(manga_name string) ([]structs.MangaProps, error) {
 	url := fmt.Sprintf("%s/quick-search?q=%s", MANGA_PILL_DEFAULT_URL, manga_name)
-	links := []core.MangaProps{}
+	links := []structs.MangaProps{}
 
 	res, err := http.Get(url)
 
@@ -50,7 +50,7 @@ func (m *Mangapill) Search(manga_name string) ([]core.MangaProps, error) {
 
 		img, _ := s.Find("img.object-cover").Attr("src")
 
-		prop := core.MangaProps{
+		prop := structs.MangaProps{
 			Name:      s.Find("div.font-black").Text(),
 			Year:      meta.Eq(1).Text(),
 			Status:    meta.Eq(2).Text(),
@@ -64,8 +64,8 @@ func (m *Mangapill) Search(manga_name string) ([]core.MangaProps, error) {
 	return links, nil
 }
 
-func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
-	chapters := []core.Chapter{}
+func (m *Mangapill) GetAllChapters(url string) ([]structs.Chapter, error) {
+	chapters := []structs.Chapter{}
 
 	res, err := http.Get(url)
 
@@ -88,7 +88,7 @@ func (m *Mangapill) GetAllChapters(url string) ([]core.Chapter, error) {
 
 		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, chapterUrl)
 
-		chapters = append(chapters, core.Chapter{
+		chapters = append(chapters, structs.Chapter{
 			Url:      fullUrl,
 			Name:     strings.TrimSpace(title),
 			Provider: MANGA_PILL,

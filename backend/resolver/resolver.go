@@ -1,10 +1,10 @@
 package resolver
 
 import (
-	"bunko/backend/core"
 	"bunko/backend/db"
 	"bunko/backend/downloader"
 	"bunko/backend/providers"
+	"bunko/backend/structs"
 	"database/sql"
 	"fmt"
 	"io"
@@ -33,9 +33,9 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 
 }
 
-func (r *Resolver) checkNewManga() *core.Manga {
+func (r *Resolver) checkNewManga() *structs.Manga {
 
-	var manga core.Manga
+	var manga structs.Manga
 	r.Database.QueryRow("SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'").
 		Scan(&manga.MangaId, &manga.Name, &manga.Path, &manga.Provider, &manga.Status, &manga.Url)
 
@@ -47,8 +47,8 @@ func (r *Resolver) checkNewManga() *core.Manga {
 	return &manga
 }
 
-// TODO: Refactor make the core functionalities more focused
-func (r *Resolver) findChapters(manga_id int) ([]core.Chapter, error) {
+// TODO: Refactor make the structs functionalities more focused
+func (r *Resolver) findChapters(manga_id int) ([]structs.Chapter, error) {
 
 	var providerName, url string
 	sql := `
@@ -105,9 +105,9 @@ func (r *Resolver) notifyWorkers() {
 }
 
 func (r *Resolver) persistMangaData(
-	manga *core.Manga,
-	metadata *core.AnilistMetadataResponse,
-	chapters []core.Chapter,
+	manga *structs.Manga,
+	metadata *structs.AnilistMetadataResponse,
+	chapters []structs.Chapter,
 ) error {
 
 	tx, err := r.Database.Begin()
@@ -136,7 +136,7 @@ func (r *Resolver) persistMangaData(
 	return tx.Commit()
 }
 
-func (r *Resolver) prepareFilesystem(manga *core.Manga) error {
+func (r *Resolver) prepareFilesystem(manga *structs.Manga) error {
 	dir := filepath.Dir(manga.Path + "/")
 	return os.MkdirAll(dir, 0755)
 }
@@ -151,7 +151,7 @@ func (r *Resolver) processNextManga() error {
 		return err
 	}
 
-	metadata, err := core.AnilistMetadataQuery(manga.Name)
+	metadata, err := structs.AnilistMetadataQuery(manga.Name)
 	if err != nil {
 		return err
 	}
