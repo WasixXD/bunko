@@ -1,4 +1,4 @@
-package server
+package structs
 
 type MangaPost struct {
 	Name         string `json:"name"`

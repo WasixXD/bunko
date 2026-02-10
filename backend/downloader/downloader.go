@@ -2,10 +2,11 @@ package downloader
 
 import (
 	"archive/zip"
-	"bunko/backend/core"
 	"bunko/backend/providers"
+	"bunko/backend/structs"
 	"context"
 	"database/sql"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/fs"
@@ -28,7 +29,7 @@ type DownloaderLock struct {
 	NWorkers int
 }
 
-func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
+func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
 
 	tx, err := d.Database.BeginTx(context.Background(), &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -38,7 +39,7 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 	}
 
 	defer tx.Rollback()
-	jb := &core.ChapterJobs{}
+	jb := &structs.ChapterJobs{}
 
 	sqlUpdate := `
 	   UPDATE download_queue
@@ -50,12 +51,13 @@ func (d *Downloader) ClaimChapter() (*core.ChapterJobs, error) {
 			ORDER BY manga_id DESC
 			LIMIT 1
 		)
-		RETURNING rowid, name, url, provider, path_to_download;
+		RETURNING rowid, manga_id, name, url, provider, path_to_download;
     `
 	row := tx.QueryRow(sqlUpdate)
 
 	err = row.Scan(
 		&jb.RowId,
+		&jb.MangaId,
 		&jb.Name,
 		&jb.Url,
 		&jb.Provider,
@@ -105,6 +107,7 @@ func (d *Downloader) TurnIntoCbz(source string) error {
 
 	archive := zip.NewWriter(zip_file)
 	defer archive.Close()
+	defer os.RemoveAll(source)
 
 	err = filepath.Walk(source, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -169,6 +172,47 @@ func copyFile(src, dst string) error {
 	return err
 }
 
+func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path string) error {
+
+	comic := structs.ComicInfo{}
+	sql := `
+		SELECT 
+			name, localized_name, web_link,
+			CASE 
+				WHEN publication_status = 'RELEASING' THEN 1
+				ELSE 0
+			END as status,
+			summary,
+			start_year, start_month, start_day
+		FROM mangas
+		WHERE manga_id = ?
+	`
+	row := d.Database.QueryRow(sql, manga_id)
+
+	row.Scan(
+		&comic.Series,
+		&comic.LocalizedSeries,
+		&comic.Web,
+		&comic.PublicationStatus,
+		&comic.Summary,
+		&comic.Year,
+		&comic.Month,
+		&comic.Day,
+	)
+	comic.Title = chapter_name
+
+	info, err := xml.MarshalIndent(comic, " ", "  ")
+
+	if err != nil {
+		return err
+	}
+
+	comicInfoPath := fmt.Sprintf("%s/comicinfo.xml", chapter_path)
+	os.WriteFile(comicInfoPath, info, 0755)
+
+	return nil
+}
+
 func (d *Downloader) Run(worker_id int) {
 
 	for {
@@ -207,6 +251,11 @@ func (d *Downloader) Run(worker_id int) {
 		old_path := fmt.Sprintf("%s/../cover.jpg", chapter.PathToDownload)
 		new_path := fmt.Sprintf("%s/0.jpg", chapter.PathToDownload)
 		if err = copyFile(old_path, new_path); err != nil {
+			log.Warn(err)
+			return
+		}
+
+		if err = d.CreateComicInfo(chapter.MangaId, chapter.Name, chapter.PathToDownload); err != nil {
 			log.Warn(err)
 			return
 		}

@@ -1,0 +1,30 @@
+services:
+  kavita:
+    image: jvmilazz0/kavita:latest
+    container_name: kavita
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/mangas:/manga
+      - ./kavita/config:/kavita/config
+    environment:
+      - TZ=America/Sao_Paulo
+  komga:
+    image: gotson/komga
+    container_name: komga
+    volumes:
+      - type: bind
+        source: ./komga/config
+        target: /config
+      - type: bind
+        source: ./backend/mangas
+        target: /data
+      - type: bind
+        source: /etc/timezone #alternatively you can use a TZ environment variable, like TZ=Europe/London
+        target: /etc/timezone
+        read_only: true
+    ports:
+      - 25600:25600
+    user: "1000:1000"
+    restart: unless-stopped
