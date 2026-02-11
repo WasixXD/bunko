@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,8 +45,22 @@ func HandleQuickSearchManga(serv *services.Services) gin.HandlerFunc {
 	}
 }
 
+func HandleMangas(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		mangas, err := serv.Manga.GetAll()
+
+		if err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		c.JSON(http.StatusOK, mangas)
+	}
+}
+
 func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/", HandleMain(serv))
 	r.POST("/add/manga", HandleAddManga(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
+	r.GET("/mangas", HandleMangas(serv))
 }

@@ -1,20 +1,38 @@
 package structs
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // This struct represents the main information from database mangas table
 type Manga struct {
-	MangaId int
+	MangaId int `json:"manga_id"`
 
-	Name string
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 
-	Status string
+	// System status
+	Status string `json:"status"`
 
-	Provider string
+	Provider string `json:"provider"`
+	Url      string `json:"url"`
 
-	Url string
+	CoverPath *string `json:"cover_path"`
+	MangaPath *string `json:"manga_path"`
 
-	Path string
+	LocalizedName     *string    `json:"localized_name"`
+	PublicationStatus *string    `json:"publication_status"`
+	Summary           *string    `json:"summary"`
+	StartYear         *int       `json:"start_year"`
+	StartMonth        *int       `json:"start_month"`
+	StartDay          *int       `json:"start_day"`
+	Author            *string    `json:"author"`
+	Art               *string    `json:"art"`
+	WebLink           *string    `json:"web_link"`
+	MetadataUpdatedAt *time.Time `json:"metadata_updated_at"`
+
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 func NormalizeName(name string) string {

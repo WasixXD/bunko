@@ -4,6 +4,7 @@ import (
 	"bunko/backend/services"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,7 @@ const (
 
 func SetupRouter(serv *services.Services) *gin.Engine {
 	r := gin.Default()
+	r.Use(cors.Default())
 	RegisterRoutes(r, serv)
 	return r
 }

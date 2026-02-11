@@ -1,2 +1,8 @@
 
-<app-button-demo/>
+<main>
+
+    @for(manga of mangas; track manga.manga_id) {
+        <li>{{ manga.name }}</li>
+    }
+
+</main>

@@ -13,3 +13,8 @@ type MangaService struct {
 func (m *MangaService) AddManga(manga structs.MangaPost) (int, error) {
 	return db.AddMangaToDB(m.db, manga)
 }
+
+func (m *MangaService) GetAll() ([]structs.Manga, error) {
+	return db.GetAllMangas(m.db)
+
+}

@@ -31,6 +31,51 @@ func AddMangaToDB(db *sql.DB, manga structs.MangaPost) (int, error) {
 	return manga_id, err
 }
 
+func GetAllMangas(db *sql.DB) ([]structs.Manga, error) {
+
+	sql := `SELECT * FROM mangas`
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mangas []structs.Manga
+
+	for rows.Next() {
+		var m structs.Manga
+		// TODO: Lets migrate to sqlx to avoid this giants scans
+		err := rows.Scan(
+			&m.MangaId,
+			&m.Name,
+			&m.Slug,
+			&m.Status,
+			&m.Provider,
+			&m.Url,
+			&m.CoverPath,
+			&m.MangaPath,
+			&m.LocalizedName,
+			&m.PublicationStatus,
+			&m.Summary,
+			&m.StartYear,
+			&m.StartMonth,
+			&m.StartDay,
+			&m.Author,
+			&m.Art,
+			&m.WebLink,
+			&m.MetadataUpdatedAt,
+			&m.CreatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		mangas = append(mangas, m)
+	}
+	return mangas, nil
+}
+
 func AddChaptersToQueue(
 	tx *sql.Tx,
 	mangaID int,

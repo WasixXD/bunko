@@ -37,7 +37,7 @@ func (r *Resolver) checkNewManga() *structs.Manga {
 
 	var manga structs.Manga
 	r.Database.QueryRow("SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'").
-		Scan(&manga.MangaId, &manga.Name, &manga.Path, &manga.Provider, &manga.Status, &manga.Url)
+		Scan(&manga.MangaId, &manga.Name, &manga.MangaPath, &manga.Provider, &manga.Status, &manga.Url)
 
 	if manga.MangaId == 0 {
 		return nil
@@ -125,7 +125,7 @@ func (r *Resolver) persistMangaData(
 		return err
 	}
 
-	if err = db.AddChaptersToQueue(tx, manga.MangaId, manga.Path, chapters); err != nil {
+	if err = db.AddChaptersToQueue(tx, manga.MangaId, *manga.MangaPath, chapters); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (r *Resolver) persistMangaData(
 }
 
 func (r *Resolver) prepareFilesystem(manga *structs.Manga) error {
-	dir := filepath.Dir(manga.Path + "/")
+	dir := filepath.Dir(*manga.MangaPath + "/")
 	return os.MkdirAll(dir, 0755)
 }
 
@@ -156,7 +156,7 @@ func (r *Resolver) processNextManga() error {
 		return err
 	}
 
-	if err := r.downloadCover(manga.Path, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+	if err := r.downloadCover(*manga.MangaPath, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
 		return err
 	}
 
