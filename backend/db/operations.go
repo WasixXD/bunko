@@ -61,7 +61,6 @@ func GetAllMangas(db *sql.DB) ([]structs.Manga, error) {
 			&m.StartMonth,
 			&m.StartDay,
 			&m.Author,
-			&m.Art,
 			&m.WebLink,
 			&m.MetadataUpdatedAt,
 			&m.CreatedAt,

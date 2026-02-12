@@ -1,8 +1,9 @@
-
-<main>
-
-    @for(manga of mangas; track manga.manga_id) {
-        <li>{{ manga.name }}</li>
+    @for(manga of mangas(); track manga.manga_id) {
+        <li style="color: black;">{{ manga.name }}</li>
+        <img src="{{ manga.cover_path }}"/>
+    } @empty {
+        <li>There are no items</li>
     }
 
-</main>
+
+    

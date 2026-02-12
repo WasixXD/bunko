@@ -28,7 +28,6 @@ type Manga struct {
 	StartMonth        *int       `json:"start_month"`
 	StartDay          *int       `json:"start_day"`
 	Author            *string    `json:"author"`
-	Art               *string    `json:"art"`
 	WebLink           *string    `json:"web_link"`
 	MetadataUpdatedAt *time.Time `json:"metadata_updated_at"`
 

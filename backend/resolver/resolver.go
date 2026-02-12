@@ -70,7 +70,7 @@ func (r *Resolver) findChapters(manga_id int) ([]structs.Chapter, error) {
 }
 
 // Seems likely that anilist just set the covers as jpg
-func (r *Resolver) downloadCover(manga_path, url string) error {
+func (r *Resolver) downloadCover(manga_id int, manga_path, url string) error {
 
 	absPath := fmt.Sprintf("%s/cover.jpg", manga_path)
 
@@ -94,6 +94,9 @@ func (r *Resolver) downloadCover(manga_path, url string) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO: No. This is a nasty hack.
+	r.Database.Exec("UPDATE mangas SET cover_path = ? WHERE manga_id = ?", url, manga_id)
 
 	return nil
 }
@@ -156,7 +159,7 @@ func (r *Resolver) processNextManga() error {
 		return err
 	}
 
-	if err := r.downloadCover(*manga.MangaPath, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+	if err := r.downloadCover(manga.MangaId, *manga.MangaPath, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
 		return err
 	}
 

@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS `mangas` (
     start_month int,
     start_day int,
     author text,
-    art text,
     web_link text,
     metadata_updated_at timestamp,
 
