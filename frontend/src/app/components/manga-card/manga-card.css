@@ -1,0 +1,87 @@
+.manga-card {
+  --card-radius: 10px;
+  --card-width: 260px;
+  --transition-speed: 0.35s;
+  --primal-black: #171218;
+  --primal-white: #f2fbeb;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--card-width);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--primal-black);
+  box-shadow: 0 4px 18px rgba(23, 18, 24, 0.5);
+  transition: transform var(--transition-speed) cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow var(--transition-speed) ease;
+}
+
+.manga-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 14px 36px rgba(23, 18, 24, 0.8);
+}
+
+.manga-card:hover .manga-card__cover {
+  filter: grayscale(0%) brightness(1);
+}
+
+.manga-card:hover .manga-card__overlay {
+  opacity: 0;
+}
+
+.manga-card__cover-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+}
+
+.manga-card__cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(100%) brightness(0.85);
+  transition: filter var(--transition-speed) ease;
+}
+
+.manga-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 55%, rgba(23, 18, 24, 0.8) 100%);
+  transition: opacity var(--transition-speed) ease;
+}
+
+.manga-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 14px;
+  background: var(--primal-black);
+  border-top: 1px solid rgba(242, 251, 235, 0.08);
+}
+
+.manga-card__title {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--primal-white);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.manga-card__badge {
+  align-self: flex-start;
+}
+
+.manga-card__badge ::ng-deep .p-tag {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  font-family: 'Noto Serif', Georgia, serif;
+  letter-spacing: 0.03em;
+}

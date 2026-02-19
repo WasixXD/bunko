@@ -1,0 +1,64 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  header="Add Manga"
+  styleClass="add-manga-dialog"
+  [style]="{ width: '980px', maxWidth: '96vw' }"
+>
+  <div class="amd">
+    <div class="amd__left">
+      <div class="amd__field">
+        <label class="amd__label">Manga</label>
+        <app-manga-search-select
+          (mangaSelected)="onMangaSelected($event)"
+          (mangaCleared)="onMangaCleared()"
+        />
+      </div>
+
+      <div class="amd__field">
+        <label class="amd__label">Schedule (cron)</label>
+        <app-cron-input [(value)]="cron" />
+      </div>
+
+      <div class="amd__field">
+        <label class="amd__label">Destination path</label>
+        <div class="amd__path-wrap">
+          <i class="pi pi-folder amd__path-icon"></i>
+          <input
+            class="amd__path-input"
+            type="text"
+            [(ngModel)]="mangaPath"
+            placeholder="./mangas/manga_name"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="amd__right">
+      <div class="amd__cover-area">
+        <div class="amd__cover-placeholder">
+          <i class="pi pi-image"></i>
+          <span>No manga selected</span>
+        </div>
+      </div>
+
+      <div class="amd__actions">
+        <button class="amd__btn amd__btn--cancel" type="button" (click)="close()">
+          Cancel
+        </button>
+        <button
+          class="amd__btn amd__btn--confirm"
+          type="button"
+          [disabled]="!selectedManga"
+          (click)="onConfirm()"
+        >
+          <i class="pi pi-check"></i>
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</p-dialog>

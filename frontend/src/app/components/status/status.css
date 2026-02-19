@@ -1,0 +1,23 @@
+.status-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 12px;
+}
+
+.status-page__title {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #171218;
+  margin: 0;
+}
+
+.status-page__subtitle {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 1rem;
+  color: rgba(23, 18, 24, 0.5);
+  margin: 0;
+}

@@ -1,0 +1,27 @@
+<nav class="bottom-nav">
+  <button
+    class="bottom-nav__item"
+    [class.bottom-nav__item--active]="activePage() === 'home'"
+    (click)="navigate('home')"
+    aria-label="Home"
+  >
+    <i class="pi pi-home bottom-nav__icon"></i>
+    <span class="bottom-nav__label">Home</span>
+  </button>
+
+  <button class="bottom-nav__add" (click)="openAddDialog()" aria-label="Adicionar manga">
+    <i class="pi pi-plus"></i>
+  </button>
+
+  <button
+    class="bottom-nav__item"
+    [class.bottom-nav__item--active]="activePage() === 'status'"
+    (click)="navigate('status')"
+    aria-label="Status"
+  >
+    <i class="pi pi-chart-bar bottom-nav__icon"></i>
+    <span class="bottom-nav__label">Status</span>
+  </button>
+</nav>
+
+<app-add-manga-dialog [(visible)]="addDialogVisible" />

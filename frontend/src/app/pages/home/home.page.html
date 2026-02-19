@@ -1,9 +1,20 @@
-    @for(manga of mangas(); track manga.manga_id) {
-        <li style="color: black;">{{ manga.name }}</li>
-        <img src="{{ manga.cover_path }}"/>
-    } @empty {
-        <li>There are no items</li>
-    }
+<div class="home">
+  @if (activePage() === 'home') {
+    <div class="home__grid">
+      @for (manga of mangas(); track manga.manga_id) {
+        <app-manga-card [manga]="manga" />
+      } @empty {
+        <p class="home__empty">Nenhum manga encontrado.</p>
+      }
+    </div>
+  }
 
+  @if (activePage() === 'status') {
+    <app-status />
+  }
 
-    
+  <app-bottom-nav
+    [activePage]="activePage()"
+    (pageChange)="onPageChange($event)"
+  />
+</div>

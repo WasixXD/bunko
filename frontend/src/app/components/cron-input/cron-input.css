@@ -1,0 +1,67 @@
+.cron {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cron__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cron__icon {
+  position: absolute;
+  left: 14px;
+  color: rgba(23, 18, 24, 0.4);
+  font-size: 1.05rem;
+  pointer-events: none;
+}
+
+.cron__input {
+  width: 100%;
+  padding: 14px 14px 14px 42px;
+  border: 1.5px solid rgba(23, 18, 24, 0.15);
+  border-radius: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1rem;
+  color: #171218;
+  background: #f2fbeb;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  letter-spacing: 0.06em;
+}
+
+.cron__input:focus {
+  border-color: #171218;
+}
+
+.cron__human {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.88rem;
+  color: #f2fbeb;
+  margin: 0;
+  padding: 10px 14px;
+  background: rgba(242, 251, 235, 0.08);
+  border-radius: 10px;
+  line-height: 1.5;
+  border: 1px solid rgba(242, 251, 235, 0.1);
+}
+
+.cron__human i {
+  margin-top: 3px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.cron__human--invalid {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.2);
+}

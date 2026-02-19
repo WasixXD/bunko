@@ -1,0 +1,49 @@
+<div class="mss">
+  @if (selected()) {
+    <div class="mss__badge">
+      <div class="mss__badge-info">
+        <span class="mss__badge-name">{{ selected()!.name }}</span>
+        <span class="mss__badge-sub">
+          <span class="mss__badge-provider">{{ selected()!.provider }}</span>
+          <span class="mss__badge-year">{{ selected()!.year }}</span>
+          <span class="mss__badge-status">{{ selected()!.status }}</span>
+        </span>
+      </div>
+      <button class="mss__badge-remove" type="button" (click)="clear()" aria-label="Remove">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+  } @else {
+    <div class="mss__input-wrap">
+      <i class="pi pi-search mss__icon"></i>
+      <input
+        class="mss__input"
+        type="text"
+        placeholder="Search manga..."
+        [value]="query()"
+        (input)="onInput($any($event.target).value)"
+        (blur)="closeDropdown()"
+      />
+      @if (loading()) {
+        <i class="pi pi-spin pi-spinner mss__spinner"></i>
+      }
+    </div>
+
+    @if (open() && results().length > 0) {
+      <ul class="mss__dropdown">
+        @for (item of results(); track item.url) {
+          <li class="mss__option" (mousedown)="select(item)">
+            <div class="mss__meta">
+              <span class="mss__name">{{ item.name }}</span>
+              <div class="mss__tags">
+                <span class="mss__tag mss__tag--provider">{{ item.provider }}</span>
+                <span class="mss__tag">{{ item.year }}</span>
+                <span class="mss__tag mss__tag--status">{{ item.status }}</span>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

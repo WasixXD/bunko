@@ -1,0 +1,22 @@
+<div class="manga-card" [title]="displayTitle">
+  <div class="manga-card__cover-wrapper">
+    <img
+      class="manga-card__cover"
+      [src]="coverUrl"
+      [alt]="displayTitle"
+      loading="lazy"
+      onerror="this.src='assets/no-cover.png'"
+    />
+    <div class="manga-card__overlay"></div>
+  </div>
+
+  <div class="manga-card__info">
+    <span class="manga-card__title" [title]="manga.name">{{ manga.name }}</span>
+    <p-tag
+      class="manga-card__badge"
+      [value]="manga.status | titlecase"
+      [severity]="statusSeverity"
+      [rounded]="true"
+    />
+  </div>
+</div>
