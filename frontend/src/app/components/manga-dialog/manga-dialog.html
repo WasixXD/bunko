@@ -7,6 +7,8 @@
   header="Add Manga"
   styleClass="add-manga-dialog"
   [style]="{ width: '980px', maxWidth: '96vw' }"
+  [breakpoints]="{ '768px': '100vw' }"
+  [contentStyle]="{ 'max-height': '85vh', 'overflow-y': 'auto' }"
   (onHide)="reset()"
 >
   <div class="amd">

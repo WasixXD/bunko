@@ -5,6 +5,45 @@
   background-color: #f2fbeb;
 }
 
+.home__header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.home__header-rule {
+  flex: 1;
+  height: 1.5px;
+  background: #171218;
+  opacity: 0.15;
+}
+
+.home__header-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.home__title {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #171218;
+  margin: 0;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.home__title-jp {
+  font-family: 'Noto Serif JP', 'Noto Serif', Georgia, serif;
+  font-size: 1.5rem;
+  color: rgba(23, 18, 24, 0.4);
+  letter-spacing: 0.2em;
+}
+
 .home__grid {
   display: flex;
   flex-wrap: wrap;

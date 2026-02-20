@@ -19,16 +19,19 @@ import (
 type Resolver struct {
 	// Timer to check for new mangas
 	CheckMangaTimer time.Ticker
-	Database        *sql.DB
-	Downloaders     *downloader.DownloaderLock
+
+	UpdateStatusTimer time.Ticker
+	Database          *sql.DB
+	Downloaders       *downloader.DownloaderLock
 }
 
 func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 
 	return &Resolver{
-		CheckMangaTimer: *time.NewTicker(check),
-		Database:        db,
-		Downloaders:     downloader.NewDownloaderBy(1, db),
+		CheckMangaTimer:   *time.NewTicker(check),
+		UpdateStatusTimer: *time.NewTicker(time.Duration(2000 * time.Millisecond)),
+		Database:          db,
+		Downloaders:       downloader.NewDownloaderBy(1, db),
 	}
 
 }
@@ -176,10 +179,46 @@ func (r *Resolver) processNextManga() error {
 	return nil
 }
 
+func (r *Resolver) UpdateStatus() error {
+	mangas, err := db.GetAllMangas(r.Database)
+	if err != nil {
+		return err
+	}
+
+	const query = `
+		SELECT * 
+		FROM download_queue 
+		WHERE manga_id = ?
+		AND status = 'pending'
+	`
+	for _, manga := range mangas {
+		err := r.Database.QueryRow(query, manga.MangaId).Scan()
+		if err == sql.ErrNoRows && manga.Status != "completed" {
+			log.Info(fmt.Sprintf("[Resolver] manga %s set as completed", manga.Name))
+			db.SetMangaCompleted(r.Database, manga.MangaId)
+			continue
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *Resolver) Work() {
-	for range r.CheckMangaTimer.C {
-		if err := r.processNextManga(); err != nil {
-			log.Warn(err)
+	for {
+		select {
+		case <-r.CheckMangaTimer.C:
+			if err := r.processNextManga(); err != nil {
+				log.Warn(err)
+			}
+		case <-r.UpdateStatusTimer.C:
+			if err := r.UpdateStatus(); err != sql.ErrNoRows {
+				log.Warn(err)
+			}
+
 		}
 	}
 }

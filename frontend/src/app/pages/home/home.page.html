@@ -1,6 +1,15 @@
 <p-toast position="top-right" />
 
 @if (activePage() === 'home') {
+  <header class="home__header">
+    <div class="home__header-rule"></div>
+    <div class="home__header-titles">
+      <h1 class="home__title">Bunko</h1>
+      <span class="home__title-jp">文庫</span>
+    </div>
+    <div class="home__header-rule"></div>
+  </header>
+
   <div class="home__grid">
     @for (manga of mangas(); track manga.manga_id) {
       <app-manga-card [manga]="manga" />

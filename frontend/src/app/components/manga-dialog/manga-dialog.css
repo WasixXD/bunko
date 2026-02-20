@@ -1,6 +1,6 @@
 .amd {
   display: flex;
-  gap: 56px;
+  gap: 40px;
   height: 640px;
   padding: 8px 0;
 }
@@ -17,7 +17,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 400px;
+  width: 380px;
   flex-shrink: 0;
 }
 
@@ -177,21 +177,21 @@
   flex-shrink: 0;
 }
 
-/* ── Override child component inputs for dark context ── */
-.amd :is(app-manga-search-select, app-cron-input) .mss__input,
-.amd :is(app-manga-search-select, app-cron-input) .cron__input {
+/* ── Override child inputs for dark context ─────────── */
+.amd app-manga-search-select .mss__input,
+.amd app-cron-input .cron__input {
   background: rgba(242, 251, 235, 0.06);
   border-color: rgba(242, 251, 235, 0.15);
   color: #f2fbeb;
 }
 
-.amd :is(app-manga-search-select, app-cron-input) .mss__input::placeholder,
-.amd :is(app-manga-search-select, app-cron-input) .cron__input::placeholder {
+.amd app-manga-search-select .mss__input::placeholder,
+.amd app-cron-input .cron__input::placeholder {
   color: rgba(242, 251, 235, 0.3);
 }
 
-.amd :is(app-manga-search-select, app-cron-input) .mss__input:focus,
-.amd :is(app-manga-search-select, app-cron-input) .cron__input:focus {
+.amd app-manga-search-select .mss__input:focus,
+.amd app-cron-input .cron__input:focus {
   border-color: rgba(242, 251, 235, 0.5);
 }
 
@@ -202,4 +202,32 @@
 
 .amd app-manga-search-select .mss__spinner {
   color: rgba(242, 251, 235, 0.5);
+}
+
+@media (max-width: 680px) {
+  .amd {
+    flex-direction: column;
+    height: auto;
+    gap: 24px;
+    padding: 4px 0 8px;
+  }
+
+  .amd__right {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .amd__cover-area {
+    width: 100%;
+    height: 260px;
+    flex: none;
+    order: -1;
+  }
+
+  .amd__actions {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0 4px;
+    background: linear-gradient(to bottom, transparent, rgba(23, 18, 24, 0.95) 30%);
+  }
 }

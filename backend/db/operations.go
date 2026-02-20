@@ -163,3 +163,17 @@ func AddMetadataToManga(
 
 	return err
 }
+
+func SetMangaCompleted(db *sql.DB, manga_id int) error {
+	const query = `
+		UPDATE mangas 
+		SET status = 'completed'
+		WHERE manga_id = ?
+	`
+	_, err := db.Exec(query, manga_id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
