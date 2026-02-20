@@ -14,6 +14,7 @@ export type AppPage = 'home' | 'status';
 export class BottomNavComponent {
   activePage = input.required<AppPage>();
   pageChange = output<AppPage>();
+  mangaAdded = output<void>();
 
   addDialogVisible = signal(false);
 
@@ -23,5 +24,9 @@ export class BottomNavComponent {
 
   openAddDialog(): void {
     this.addDialogVisible.set(true);
+  }
+
+  onMangaAdded(): void {
+    this.mangaAdded.emit();
   }
 }

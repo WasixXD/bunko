@@ -1,7 +1,8 @@
 .amd {
   display: flex;
-  gap: 40px;
-  height: 580px;
+  gap: 56px;
+  height: 640px;
+  padding: 8px 0;
 }
 
 .amd__left {
@@ -16,16 +17,16 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 280px;
+  width: 400px;
   flex-shrink: 0;
 }
 
 .amd__label {
   display: block;
   font-family: 'Noto Serif', Georgia, serif;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 700;
-  color: rgba(23, 18, 24, 0.45);
+  color: #f2fbeb;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 10px;
@@ -45,7 +46,7 @@
 .amd__path-icon {
   position: absolute;
   left: 14px;
-  color: rgba(23, 18, 24, 0.4);
+  color: rgba(242, 251, 235, 0.4);
   font-size: 1.05rem;
   pointer-events: none;
 }
@@ -53,29 +54,32 @@
 .amd__path-input {
   width: 100%;
   padding: 14px 14px 14px 42px;
-  border: 1.5px solid rgba(23, 18, 24, 0.15);
+  border: 1.5px solid rgba(242, 251, 235, 0.15);
   border-radius: 12px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.95rem;
-  color: #171218;
-  background: #f2fbeb;
+  color: #f2fbeb;
+  background: rgba(242, 251, 235, 0.06);
   outline: none;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
 }
 
-.amd__path-input:focus {
-  border-color: #171218;
+.amd__path-input::placeholder {
+  color: rgba(242, 251, 235, 0.3);
 }
 
-/* ── Right column ──────────────────────────────── */
+.amd__path-input:focus {
+  border-color: rgba(242, 251, 235, 0.5);
+}
 
 .amd__cover-area {
   flex: 1;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  background: rgba(23, 18, 24, 0.05);
+  background: rgba(242, 251, 235, 0.05);
   min-height: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 .amd__cover {
@@ -93,7 +97,7 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  color: rgba(23, 18, 24, 0.2);
+  color: rgba(242, 251, 235, 0.2);
 }
 
 .amd__cover-placeholder i {
@@ -125,29 +129,77 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: opacity 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
 }
 
 .amd__btn--cancel {
-  background: rgba(23, 18, 24, 0.07);
-  color: rgba(23, 18, 24, 0.65);
+  background: transparent;
+  color: rgba(242, 251, 235, 0.75);
+  border: 1.5px solid rgba(242, 251, 235, 0.25);
 }
 
 .amd__btn--cancel:hover {
-  background: rgba(23, 18, 24, 0.12);
-}
-
-.amd__btn--confirm {
-  background: #171218;
+  background: rgba(242, 251, 235, 0.08);
+  border-color: rgba(242, 251, 235, 0.5);
   color: #f2fbeb;
 }
 
+.amd__btn--confirm {
+  background: #f2fbeb;
+  color: #171218;
+}
+
 .amd__btn--confirm:hover:not(:disabled) {
-  opacity: 0.85;
+  opacity: 0.88;
   transform: translateY(-1px);
 }
 
 .amd__btn--confirm:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
+}
+
+.amd__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 10px;
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.88rem;
+  color: #f87171;
+  margin: 0;
+}
+
+.amd__error i {
+  flex-shrink: 0;
+}
+
+/* ── Override child component inputs for dark context ── */
+.amd :is(app-manga-search-select, app-cron-input) .mss__input,
+.amd :is(app-manga-search-select, app-cron-input) .cron__input {
+  background: rgba(242, 251, 235, 0.06);
+  border-color: rgba(242, 251, 235, 0.15);
+  color: #f2fbeb;
+}
+
+.amd :is(app-manga-search-select, app-cron-input) .mss__input::placeholder,
+.amd :is(app-manga-search-select, app-cron-input) .cron__input::placeholder {
+  color: rgba(242, 251, 235, 0.3);
+}
+
+.amd :is(app-manga-search-select, app-cron-input) .mss__input:focus,
+.amd :is(app-manga-search-select, app-cron-input) .cron__input:focus {
+  border-color: rgba(242, 251, 235, 0.5);
+}
+
+.amd app-manga-search-select .mss__icon,
+.amd app-cron-input .cron__icon {
+  color: rgba(242, 251, 235, 0.4);
+}
+
+.amd app-manga-search-select .mss__spinner {
+  color: rgba(242, 251, 235, 0.5);
 }

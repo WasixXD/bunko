@@ -54,9 +54,10 @@ export class MangaSearchSelectComponent {
             return of(null);
           }
           this.loading.set(true);
+          const params = new URLSearchParams({ q: q.split(" ").join("-") });
           return this.http
             .get<Record<string, Omit<MangaSearchResult, 'provider'>[]>>(
-              `${environment.backendUrl}/quick-search/manga?q=${encodeURIComponent(q)}`
+              `${environment.backendUrl}/quick-search/manga?${params.toString()}`
             )
             .pipe(takeUntilDestroyed(this.destroyRef));
         })

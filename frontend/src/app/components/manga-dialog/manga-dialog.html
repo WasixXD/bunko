@@ -7,6 +7,7 @@
   header="Add Manga"
   styleClass="add-manga-dialog"
   [style]="{ width: '980px', maxWidth: '96vw' }"
+  (onHide)="reset()"
 >
   <div class="amd">
     <div class="amd__left">
@@ -35,28 +36,54 @@
           />
         </div>
       </div>
+
+      @if (error()) {
+        <p class="amd__error">
+          <i class="pi pi-exclamation-triangle"></i>
+          {{ error() }}
+        </p>
+      }
     </div>
 
     <div class="amd__right">
       <div class="amd__cover-area">
-        <div class="amd__cover-placeholder">
-          <i class="pi pi-image"></i>
-          <span>No manga selected</span>
-        </div>
+        @if (coverUrl()) {
+          <img class="amd__cover" [src]="coverUrl()!" [alt]="selectedManga?.name" />
+        } @else if (coverLoading()) {
+          <div class="amd__cover-placeholder">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading cover...</span>
+          </div>
+        } @else {
+          <div class="amd__cover-placeholder">
+            <i class="pi pi-image"></i>
+            <span>No manga selected</span>
+          </div>
+        }
       </div>
 
       <div class="amd__actions">
-        <button class="amd__btn amd__btn--cancel" type="button" (click)="close()">
+        <button
+          class="amd__btn amd__btn--cancel"
+          type="button"
+          [disabled]="submitting()"
+          (click)="close()"
+        >
           Cancel
         </button>
         <button
           class="amd__btn amd__btn--confirm"
           type="button"
-          [disabled]="!selectedManga"
+          [disabled]="!selectedManga || submitting()"
           (click)="onConfirm()"
         >
-          <i class="pi pi-check"></i>
-          Confirm
+          @if (submitting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            Adding...
+          } @else {
+            <i class="pi pi-check"></i>
+            Confirm
+          }
         </button>
       </div>
     </div>

@@ -9,7 +9,7 @@
     <span class="bottom-nav__label">Home</span>
   </button>
 
-  <button class="bottom-nav__add" (click)="openAddDialog()" aria-label="Adicionar manga">
+  <button class="bottom-nav__add" (click)="openAddDialog()" aria-label="Add manga">
     <i class="pi pi-plus"></i>
   </button>
 
@@ -24,4 +24,7 @@
   </button>
 </nav>
 
-<app-add-manga-dialog [(visible)]="addDialogVisible" />
+<app-add-manga-dialog
+  [(visible)]="addDialogVisible"
+  (mangaAdded)="onMangaAdded()"
+/>

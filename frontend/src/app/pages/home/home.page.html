@@ -1,20 +1,21 @@
-<div class="home">
-  @if (activePage() === 'home') {
-    <div class="home__grid">
-      @for (manga of mangas(); track manga.manga_id) {
-        <app-manga-card [manga]="manga" />
-      } @empty {
-        <p class="home__empty">Nenhum manga encontrado.</p>
-      }
-    </div>
-  }
+<p-toast position="top-right" />
 
-  @if (activePage() === 'status') {
-    <app-status />
-  }
+@if (activePage() === 'home') {
+  <div class="home__grid">
+    @for (manga of mangas(); track manga.manga_id) {
+      <app-manga-card [manga]="manga" />
+    } @empty {
+      <p class="home__empty">No manga found.</p>
+    }
+  </div>
+}
 
-  <app-bottom-nav
-    [activePage]="activePage()"
-    (pageChange)="onPageChange($event)"
-  />
-</div>
+@if (activePage() === 'status') {
+  <app-status />
+}
+
+<app-bottom-nav
+  [activePage]="activePage()"
+  (pageChange)="onPageChange($event)"
+  (mangaAdded)="onMangaAdded()"
+/>
