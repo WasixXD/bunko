@@ -62,7 +62,6 @@ export class HomePage implements OnInit {
           this.pollAttempts++;
           const allHaveCovers = data.every((m) => !!m.cover_path);
           const maxReached = this.pollAttempts >= POLL_MAX_ATTEMPTS;
-
           if (allHaveCovers || maxReached) {
             if (allHaveCovers) {
               this.messageService.add({

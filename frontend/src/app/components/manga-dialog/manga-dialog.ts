@@ -44,7 +44,7 @@ export class AddMangaDialogComponent {
 
   onMangaSelected(manga: MangaSearchResult): void {
     this.selectedManga = manga;
-    this.mangaPath = `./mangas/${manga.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+    this.mangaPath = `./mangas/`;
     this.fetchAnilistCover(manga.name);
   }
 

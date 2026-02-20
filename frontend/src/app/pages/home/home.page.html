@@ -1,6 +1,6 @@
 <p-toast position="top-right" />
 
-@if (activePage() === 'home') {
+<div [class.hidden]="activePage() !== 'home'">
   <header class="home__header">
     <div class="home__header-rule"></div>
     <div class="home__header-titles">
@@ -17,11 +17,11 @@
       <p class="home__empty">No manga found.</p>
     }
   </div>
-}
+</div>
 
-@if (activePage() === 'status') {
-  <app-status />
-}
+<div [class.hidden]="activePage() !== 'status'">
+  <app-status [mangas]="mangas()" />
+</div>
 
 <app-bottom-nav
   [activePage]="activePage()"

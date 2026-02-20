@@ -1,4 +1,63 @@
-<div class="status-page">
-  <h1 class="status-page__title">Status</h1>
-  <p class="status-page__subtitle">Em breve...</p>
+<div class="page">
+  <header class="page-header">
+    <h1 class="title">Queue</h1>
+    <span class="total">{{ counts().all }} jobs</span>
+  </header>
+
+  <div class="toolbar">
+    <div class="filters">
+      @for (f of filters; track f.value) {
+        <button
+          class="filter-btn"
+          [class.active]="activeFilter() === f.value"
+          [attr.data-status]="f.value"
+          (click)="setFilter(f.value)"
+        >
+          {{ f.label }}
+          <span class="filter-count">{{ counts()[f.value] }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="search-wrap">
+      <i class="pi pi-search search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search by name..."
+        [value]="nameQuery()"
+        (input)="onNameInput($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <div class="grid">
+    @for (job of filteredJobs(); track job.rowid) {
+      <div class="card" [attr.data-status]="job.status">
+        <div class="card-cover">
+          @if (getCover(job.manga_id)) {
+            <img class="card-img" [src]="getCover(job.manga_id)!" [alt]="job.name" />
+          } @else {
+            <div class="card-img-placeholder">
+              <i class="pi pi-image"></i>
+            </div>
+          }
+          <span class="status-badge" [attr.data-status]="job.status">{{ job.status }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-top">
+            <span class="provider">{{ job.provider }}</span>
+          </div>
+          <p class="job-name">{{ job.name }}</p>
+          <p class="job-path">{{ job.path_to_download }}</p>
+          <a class="job-url" [href]="job.url" target="_blank" rel="noopener">{{ job.url }}</a>
+        </div>
+      </div>
+    }
+
+    @if (filteredJobs().length === 0) {
+      <div class="empty">No jobs found.</div>
+    }
+  </div>
 </div>

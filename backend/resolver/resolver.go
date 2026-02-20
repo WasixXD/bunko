@@ -31,7 +31,7 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 		CheckMangaTimer:   *time.NewTicker(check),
 		UpdateStatusTimer: *time.NewTicker(time.Duration(2000 * time.Millisecond)),
 		Database:          db,
-		Downloaders:       downloader.NewDownloaderBy(1, db),
+		Downloaders:       downloader.NewDownloaderBy(50, db),
 	}
 
 }
@@ -215,7 +215,7 @@ func (r *Resolver) Work() {
 				log.Warn(err)
 			}
 		case <-r.UpdateStatusTimer.C:
-			if err := r.UpdateStatus(); err != sql.ErrNoRows {
+			if err := r.UpdateStatus(); err != nil && err != sql.ErrNoRows {
 				log.Warn(err)
 			}
 

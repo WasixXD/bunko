@@ -177,3 +177,38 @@ func SetMangaCompleted(db *sql.DB, manga_id int) error {
 
 	return nil
 }
+
+func GetAllJobs(db *sql.DB) ([]structs.ChapterJobs, error) {
+	const query = `
+		SELECT rowid, * 
+		FROM download_queue
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []structs.ChapterJobs
+
+	for rows.Next() {
+		var j structs.ChapterJobs
+
+		err := rows.Scan(
+			&j.RowId,
+			&j.MangaId,
+			&j.Name,
+			&j.Url,
+			&j.Status,
+			&j.Provider,
+			&j.PathToDownload,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, j)
+	}
+
+	return jobs, nil
+}

@@ -39,7 +39,7 @@
 
 .home__title-jp {
   font-family: 'Noto Serif JP', 'Noto Serif', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: 0.85rem;
   color: rgba(23, 18, 24, 0.4);
   letter-spacing: 0.2em;
 }
@@ -54,4 +54,8 @@
   font-family: 'Noto Serif', Georgia, serif;
   color: rgba(23, 18, 24, 0.45);
   font-size: 0.95rem;
+}
+
+.hidden {
+  display: none;
 }
