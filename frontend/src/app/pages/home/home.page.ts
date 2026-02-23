@@ -9,13 +9,14 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { interval, Subscription, switchMap, takeWhile, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MangaDetailDialogComponent } from '@components/manga-detail/manga-detail';
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_ATTEMPTS = 10;
 
 @Component({
   selector: 'app-home-page',
-  imports: [CommonModule, MangaCardComponent, BottomNavComponent, StatusComponent, ToastModule],
+  imports: [CommonModule, MangaCardComponent, BottomNavComponent, StatusComponent, MangaDetailDialogComponent, ToastModule],
   standalone: true,
   providers: [MessageService],
   templateUrl: './home.page.html',
@@ -24,6 +25,8 @@ const POLL_MAX_ATTEMPTS = 10;
 export class HomePage implements OnInit {
   mangas = signal<Array<Manga>>([]);
   activePage = signal<AppPage>('home');
+  selectedMangaId = signal<number | null>(null);
+  detailVisible = signal(false);
 
   private mangaService = inject(MangaService);
   private messageService = inject(MessageService);
@@ -40,6 +43,11 @@ export class HomePage implements OnInit {
     if (page === 'home' && this.mangas().length === 0) {
       this.loadMangas();
     }
+  }
+
+  onMangaClick(mangaId: number): void {
+    this.selectedMangaId.set(mangaId);
+    this.detailVisible.set(true);
   }
 
   onMangaAdded(): void {

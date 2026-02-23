@@ -61,6 +61,20 @@ func HandleMangas(serv *services.Services) gin.HandlerFunc {
 	}
 }
 
+func HandleMangasGet(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		q := c.Query("id")
+
+		manga, err := serv.Manga.GetById(q)
+		if err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		c.JSON(http.StatusOK, manga)
+	}
+}
+
 func HandleQueue(serv *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -102,5 +116,6 @@ func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.POST("/add/manga", HandleAddManga(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
 	r.GET("/mangas", HandleMangas(serv))
+	r.GET("/mangas/get/", HandleMangasGet(serv))
 	r.GET("/queue", HandleQueue(serv))
 }

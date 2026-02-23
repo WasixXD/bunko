@@ -12,7 +12,7 @@
 
   <div class="home__grid">
     @for (manga of mangas(); track manga.manga_id) {
-      <app-manga-card [manga]="manga" />
+      <app-manga-card [manga]="manga" (clicked)="onMangaClick($event)" />
     } @empty {
       <p class="home__empty">No manga found.</p>
     }
@@ -22,6 +22,11 @@
 <div [class.hidden]="activePage() !== 'status'">
   <app-status [mangas]="mangas()" />
 </div>
+
+<app-manga-detail-dialog
+  [(visible)]="detailVisible"
+  [mangaId]="selectedMangaId()"
+/>
 
 <app-bottom-nav
   [activePage]="activePage()"

@@ -212,3 +212,39 @@ func GetAllJobs(db *sql.DB) ([]structs.ChapterJobs, error) {
 
 	return jobs, nil
 }
+
+func GetById(db *sql.DB, id string) (structs.Manga, error) {
+	const query = `
+		SELECT *
+		FROM mangas
+		WHERE manga_id = ?
+	`
+	var manga structs.Manga
+
+	err := db.QueryRow(query, id).Scan(
+		&manga.MangaId,
+		&manga.Name,
+		&manga.Slug,
+		&manga.Status,
+		&manga.Provider,
+		&manga.Url,
+		&manga.CoverPath,
+		&manga.MangaPath,
+		&manga.LocalizedName,
+		&manga.PublicationStatus,
+		&manga.Summary,
+		&manga.StartYear,
+		&manga.StartMonth,
+		&manga.StartDay,
+		&manga.Author,
+		&manga.WebLink,
+		&manga.MetadataUpdatedAt,
+		&manga.CreatedAt,
+	)
+
+	if err != nil {
+		return manga, err
+	}
+
+	return manga, nil
+}

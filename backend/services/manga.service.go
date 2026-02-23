@@ -16,5 +16,8 @@ func (m *MangaService) AddManga(manga structs.MangaPost) (int, error) {
 
 func (m *MangaService) GetAll() ([]structs.Manga, error) {
 	return db.GetAllMangas(m.db)
+}
 
+func (m *MangaService) GetById(id string) (structs.Manga, error) {
+	return db.GetById(m.db, id)
 }

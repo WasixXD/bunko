@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
@@ -13,6 +13,8 @@ import { Manga } from '../../mangas/mangas.model'
 })
 export class MangaCardComponent {
   @Input() manga!: Manga;
+
+  clicked = output<number>();
 
   get statusSeverity(): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
     const map: Record<string, 'success' | 'info' | 'warn' | 'secondary'> = {
@@ -29,5 +31,9 @@ export class MangaCardComponent {
 
   get coverUrl(): string {
     return this.manga.cover_path ?? 'assets/no-cover.png';
+  }
+
+  onClick(): void {
+    this.clicked.emit(this.manga.manga_id);
   }
 }

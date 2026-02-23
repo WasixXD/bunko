@@ -1,0 +1,104 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [showHeader]="false"
+  styleClass="manga-detail-dialog"
+  [style]="{ width: '1300px', maxWidth: '96vw' }"
+  [breakpoints]="{ '768px': '100vw' }"
+  [contentStyle]="{ padding: '0', 'border-radius': '16px', overflow: 'hidden', 'max-height': '90vh', 'overflow-y': 'auto' }"
+  [dismissableMask]="true"
+  (onHide)="close()"
+>
+  <div class="mdd">
+
+    @if (loading()) {
+      <div class="mdd__loading">
+        <i class="pi pi-spin pi-spinner"></i>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="mdd__error">
+        <i class="pi pi-exclamation-triangle"></i>
+        {{ error() }}
+      </div>
+    }
+
+    @if (manga(); as m) {
+      <div class="mdd__cover-col">
+        <img
+          class="mdd__cover"
+          [src]="m.cover_path || 'assets/no-cover.png'"
+          [alt]="m.name"
+        />
+      </div>
+
+      <div class="mdd__info-col">
+        <div class="mdd__info-scroll">
+
+          <div class="mdd__header">
+            @if (m.localized_name) {
+              <span class="mdd__localized">{{ m.localized_name }}</span>
+            }
+            <h2 class="mdd__title">{{ m.name }}</h2>
+            <div class="mdd__meta-row">
+              <span class="mdd__badge mdd__badge--provider">{{ m.provider }}</span>
+              <span class="mdd__badge mdd__badge--status" [attr.data-status]="m.publication_status ?? m.status">
+                {{ m.publication_status ?? m.status }}
+              </span>
+              @if (startDate !== '—') {
+                <span class="mdd__badge">{{ startDate }}</span>
+              }
+            </div>
+          </div>
+
+          @if (cleanSummary) {
+            <div class="mdd__summary-block">
+              <span class="mdd__summary-label">Summary</span>
+              <p class="mdd__summary">{{ cleanSummary }}</p>
+            </div>
+          }
+
+          <div class="mdd__details">
+            @if (m.author) {
+              <div class="mdd__detail-row">
+                <span class="mdd__detail-label">Author</span>
+                <span class="mdd__detail-value">{{ m.author }}</span>
+              </div>
+            }
+            @if (m.art) {
+              <div class="mdd__detail-row">
+                <span class="mdd__detail-label">Art</span>
+                <span class="mdd__detail-value">{{ m.art }}</span>
+              </div>
+            }
+            <div class="mdd__detail-row">
+              <span class="mdd__detail-label">Path</span>
+              <span class="mdd__detail-value mdd__detail-value--mono">{{ m.manga_path }}</span>
+            </div>
+            @if (m.web_link) {
+              <div class="mdd__detail-row">
+                <span class="mdd__detail-label">Link</span>
+                <a class="mdd__link" [href]="m.web_link" target="_blank" rel="noopener">
+                  {{ m.web_link }}
+                </a>
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <div class="mdd__footer">
+          <button class="mdd__delete-btn" type="button" title="Delete manga">
+            <i class="pi pi-trash"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+    }
+
+  </div>
+</p-dialog>
