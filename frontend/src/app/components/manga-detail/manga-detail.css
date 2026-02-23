@@ -1,7 +1,9 @@
 .mdd {
   display: flex;
-  min-height: 600px;
+  height: 920px;
+  max-height: 920px;
   align-items: stretch;
+  overflow: hidden;
 }
 
 .mdd__loading,
@@ -29,10 +31,11 @@
 /* ── Cover ──────────────────────────── */
 .mdd__cover-col {
   width: 600px;
+  height: 920px;
   flex-shrink: 0;
   background: #0d0d0d;
   position: relative;
-  align-self: stretch;
+  overflow: hidden;
 }
 
 .mdd__cover {
@@ -52,6 +55,7 @@
   flex-direction: column;
   background: #171218;
   overflow: hidden;
+  min-height: 0;
 }
 
 .mdd__info-scroll {
@@ -251,22 +255,55 @@
   .mdd {
     flex-direction: column;
     min-height: unset;
+    position: relative;
   }
 
+  /* Cover fills top portion absolutely behind info */
   .mdd__cover-col {
     width: 100%;
-    height: 280px;
+    height: 55vw;
+    min-height: 220px;
+    max-height: 340px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* Gradient fades image into the info section below */
+  .mdd__cover-col::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(to bottom, transparent, #171218);
+    pointer-events: none;
+  }
+
+  .mdd__info-col {
+    background: #171218;
   }
 
   .mdd__info-scroll {
-    padding: 24px 20px 16px;
+    padding: 20px 20px 12px;
+    gap: 20px;
   }
 
   .mdd__title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+  }
+
+  .mdd__summary {
+    font-size: 0.85rem;
+    line-height: 1.7;
   }
 
   .mdd__footer {
-    padding: 14px 20px 20px;
+    padding: 12px 20px 20px;
+  }
+
+  .mdd__delete-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
