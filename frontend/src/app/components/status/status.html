@@ -35,7 +35,12 @@
     @for (job of filteredJobs(); track job.rowid) {
       <div class="card" [attr.data-status]="job.status">
         <div class="card-cover">
-          @if (getCover(job.manga_id)) {
+          @if (!mangaExists(job.manga_id)) {
+            <div class="card-img-placeholder card-img-placeholder--deleted">
+              <i class="pi pi-ban"></i>
+              <span>Manga does not exist</span>
+            </div>
+          } @else if (getCover(job.manga_id)) {
             <img class="card-img" [src]="getCover(job.manga_id)!" [alt]="job.name" />
           } @else {
             <div class="card-img-placeholder">

@@ -213,7 +213,7 @@ func GetAllJobs(db *sql.DB) ([]structs.ChapterJobs, error) {
 	return jobs, nil
 }
 
-func GetById(db *sql.DB, id string) (structs.Manga, error) {
+func GetMangaById(db *sql.DB, id string) (structs.Manga, error) {
 	const query = `
 		SELECT *
 		FROM mangas
@@ -247,4 +247,21 @@ func GetById(db *sql.DB, id string) (structs.Manga, error) {
 	}
 
 	return manga, nil
+}
+
+func DeleteMangaById(db *sql.DB, id string) (int, error) {
+	const query = `
+		DELETE FROM mangas
+		WHERE manga_id = ? 
+	`
+
+	result, err := db.Exec(query, id)
+
+	if err != nil {
+		return -1, err
+	}
+
+	rows, err := result.RowsAffected()
+
+	return int(rows), err
 }

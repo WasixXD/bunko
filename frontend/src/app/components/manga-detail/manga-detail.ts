@@ -1,4 +1,4 @@
-import { Component, model, input, inject, signal, effect } from '@angular/core';
+import { Component, model, input, inject, signal, effect, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { DialogModule } from 'primeng/dialog';
@@ -21,6 +21,9 @@ export class MangaDetailDialogComponent {
   manga = signal<Manga | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
+  confirmingDelete = signal(false);
+  deleting = signal(false);
+  mangaDeleted = output<void>();
 
   constructor() {
     effect(() => {
@@ -67,5 +70,32 @@ export class MangaDetailDialogComponent {
   close(): void {
     this.visible.set(false);
     this.manga.set(null);
+    this.confirmingDelete.set(false);
+  }
+
+  requestDelete(): void {
+    this.confirmingDelete.set(true);
+  }
+
+  cancelDelete(): void {
+    this.confirmingDelete.set(false);
+  }
+
+  confirmDelete(id: number): void {
+    this.deleting.set(true);
+    this.error.set(null);
+
+    this.http.delete(`${environment.backendUrl}/mangas/delete/?id=${id}`).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.visible.set(false);
+        this.mangaDeleted.emit();
+      },
+      error: () => {
+        this.error.set('Failed to delete manga.');
+        this.deleting.set(false);
+        this.confirmingDelete.set(false);
+      },
+    });
   }
 }

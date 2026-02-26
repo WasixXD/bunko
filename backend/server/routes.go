@@ -75,6 +75,20 @@ func HandleMangasGet(serv *services.Services) gin.HandlerFunc {
 	}
 }
 
+func HandleMangasDelete(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		q := c.Query("id")
+		_, err := serv.Manga.DeleteById(q)
+
+		if err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{"msg": "deleted"})
+	}
+}
+
 func HandleQueue(serv *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -117,5 +131,6 @@ func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
 	r.GET("/mangas", HandleMangas(serv))
 	r.GET("/mangas/get/", HandleMangasGet(serv))
+	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 	r.GET("/queue", HandleQueue(serv))
 }

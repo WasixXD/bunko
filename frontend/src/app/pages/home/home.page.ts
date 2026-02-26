@@ -5,11 +5,11 @@ import { MangaService } from 'app/mangas/mangas.service';
 import { MangaCardComponent } from '@components/manga-card/manga-card';
 import { BottomNavComponent, AppPage } from '@components/bottom-nav/bottom-nav';
 import { StatusComponent } from '@components/status/status';
+import { MangaDetailDialogComponent } from '@components/manga-detail/manga-detail';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { interval, Subscription, switchMap, takeWhile, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MangaDetailDialogComponent } from '@components/manga-detail/manga-detail';
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_ATTEMPTS = 10;
@@ -48,6 +48,16 @@ export class HomePage implements OnInit {
   onMangaClick(mangaId: number): void {
     this.selectedMangaId.set(mangaId);
     this.detailVisible.set(true);
+  }
+
+  onMangaDeleted(): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Manga deleted.',
+      life: 4000,
+    });
+    this.loadMangas();
   }
 
   onMangaAdded(): void {

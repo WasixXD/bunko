@@ -18,7 +18,7 @@ func InitDb(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("could not create sqlite3 file: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("could not open sqlite3 file: %w", err)
 	}

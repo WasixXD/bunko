@@ -92,10 +92,33 @@
         </div>
 
         <div class="mdd__footer">
-          <button class="mdd__delete-btn" type="button" title="Delete manga">
-            <i class="pi pi-trash"></i>
-            Delete
-          </button>
+          @if (confirmingDelete()) {
+            <div class="mdd__confirm-row">
+              <span class="mdd__confirm-text">
+                <i class="pi pi-exclamation-triangle"></i>
+                Delete "{{ m.name }}"? This cannot be undone.
+              </span>
+              <div class="mdd__confirm-actions">
+                <button class="mdd__btn mdd__btn--ghost" type="button" [disabled]="deleting()" (click)="cancelDelete()">
+                  Cancel
+                </button>
+                <button class="mdd__btn mdd__btn--danger" type="button" [disabled]="deleting()" (click)="confirmDelete(m.manga_id)">
+                  @if (deleting()) {
+                    <i class="pi pi-spin pi-spinner"></i>
+                    Deleting...
+                  } @else {
+                    <i class="pi pi-trash"></i>
+                    Yes, delete
+                  }
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button class="mdd__delete-btn" type="button" (click)="requestDelete()">
+              <i class="pi pi-trash"></i>
+              Delete
+            </button>
+          }
         </div>
       </div>
     }

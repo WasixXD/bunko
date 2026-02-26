@@ -26,6 +26,7 @@
 <app-manga-detail-dialog
   [(visible)]="detailVisible"
   [mangaId]="selectedMangaId()"
+  (mangaDeleted)="onMangaDeleted()"
 />
 
 <app-bottom-nav

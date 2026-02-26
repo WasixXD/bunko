@@ -60,8 +60,12 @@ export class StatusComponent implements OnInit, OnDestroy {
     };
   });
 
+  mangaExists(mangaId: number): boolean {
+    return (this.mangas() ?? []).some((m) => m.manga_id === mangaId);
+  }
+
   getCover(mangaId: number): string | null {
-    return this.mangas().find((m) => m.manga_id === mangaId)?.cover_path ?? null;
+    return (this.mangas() ?? []).find((m) => m.manga_id === mangaId)?.cover_path ?? null;
   }
 
   ngOnInit() {

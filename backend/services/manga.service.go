@@ -19,5 +19,9 @@ func (m *MangaService) GetAll() ([]structs.Manga, error) {
 }
 
 func (m *MangaService) GetById(id string) (structs.Manga, error) {
-	return db.GetById(m.db, id)
+	return db.GetMangaById(m.db, id)
+}
+
+func (m *MangaService) DeleteById(id string) (int, error) {
+	return db.DeleteMangaById(m.db, id)
 }

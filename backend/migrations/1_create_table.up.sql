@@ -1,45 +1,50 @@
+PRAGMA foreign_keys = ON;
 
-CREATE TABLE IF NOT EXISTS `mangas` (
-    manga_id integer primary key,
+CREATE TABLE IF NOT EXISTS mangas (
+    manga_id INTEGER PRIMARY KEY,
 
-    name text not null,
-    slug text not null,
-    status text not null check (status in ("downloading", "pending", "completed")),
-    provider text not null,
-    url text not null,
-    cover_path text,
-    manga_path text not null,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('downloading', 'pending', 'completed')),
+    provider TEXT NOT NULL,
+    url TEXT NOT NULL,
+    cover_path TEXT,
+    manga_path TEXT NOT NULL,
 
-    localized_name text,
-    publication_status text,
-    summary text,
-    start_year int,
-    start_month int,
-    start_day int,
-    author text,
-    web_link text,
-    metadata_updated_at timestamp,
+    localized_name TEXT,
+    publication_status TEXT,
+    summary TEXT,
+    start_year INTEGER,
+    start_month INTEGER,
+    start_day INTEGER,
+    author TEXT,
+    web_link TEXT,
+    metadata_updated_at TIMESTAMP,
 
-    created_at timestamp default (datetime('now'))
+    created_at TIMESTAMP DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS `chapter` (
-    manga_id integer not null,
-    chapter_id integer primary key,
-    url text not null,
-    name text not null,
-    foreign key (manga_id)
-        references mangas (manga_id)
+CREATE TABLE IF NOT EXISTS chapter (
+    chapter_id INTEGER PRIMARY KEY,
+    manga_id INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    name TEXT NOT NULL,
+
+    FOREIGN KEY (manga_id)
+        REFERENCES mangas (manga_id)
+        ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS download_queue (
+    manga_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('downloading', 'pending', 'completed', 'error')),
+    provider TEXT NOT NULL,
+    path_to_download TEXT NOT NULL,
 
-CREATE TABLE IF NOT EXISTS `download_queue` (
-    manga_id integer not null,
-    name text not null,
-    url text not null,
-    status text not null default 'pending' check (status in ("downloading", "pending", "completed", "error")),
-    provider text not null,
-    path_to_download text not null,
-    foreign key (manga_id)
-        references mangas (manga_id)
+    FOREIGN KEY (manga_id)
+        REFERENCES mangas (manga_id)
+        ON DELETE CASCADE
 );
