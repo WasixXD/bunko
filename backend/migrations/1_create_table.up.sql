@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS chapter (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS cron (
+    manga_id INTEGER NOT NULL,
+    rule TEXT,
+    last_updated_at TIMESTAMP DEFAULT (datetime('now')),
+    FOREIGN KEY (manga_id)
+        REFERENCES mangas (manga_id)
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS download_queue (
     manga_id INTEGER NOT NULL,
     name TEXT NOT NULL,

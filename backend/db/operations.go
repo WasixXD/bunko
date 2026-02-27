@@ -265,3 +265,18 @@ func DeleteMangaById(db *sql.DB, id string) (int, error) {
 
 	return int(rows), err
 }
+
+func AddTimeRule(db *sql.DB, time_rule, manga_id string) error {
+	const query = `
+		INSERT INTO cron(manga_id, rule)
+		VALUES (?, ?)
+	`
+
+	_, err := db.Exec(query, manga_id, time_rule)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

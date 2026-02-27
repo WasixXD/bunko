@@ -25,12 +25,20 @@ func HandleAddManga(serv *services.Services) gin.HandlerFunc {
 		var json structs.MangaPost
 
 		if err := c.ShouldBindJSON(&json); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 
 		id, err := serv.Manga.AddManga(json)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		manga_id_str := fmt.Sprintf("%d", id)
+		if err = serv.Manga.AddTimeRule(json.TimeRule, manga_id_str); err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 
 		c.JSON(http.StatusCreated, gin.H{"manga_id": id})
@@ -38,9 +46,9 @@ func HandleAddManga(serv *services.Services) gin.HandlerFunc {
 }
 
 func HandleQuickSearchManga(serv *services.Services) gin.HandlerFunc {
+	// TODO: Handle this into the service
 	factory := providers.NewProviderFactory()
 
-	// TODO: Handle this into the service
 	return func(c *gin.Context) {
 		q := c.Query("q")
 		mangas := factory.FullSearch(q)
@@ -127,10 +135,12 @@ func HandleQueue(serv *services.Services) gin.HandlerFunc {
 
 func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/", HandleMain(serv))
-	r.POST("/add/manga", HandleAddManga(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
 	r.GET("/mangas", HandleMangas(serv))
 	r.GET("/mangas/get/", HandleMangasGet(serv))
-	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 	r.GET("/queue", HandleQueue(serv))
+
+	r.POST("/add/manga", HandleAddManga(serv))
+
+	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 }

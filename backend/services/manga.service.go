@@ -25,3 +25,7 @@ func (m *MangaService) GetById(id string) (structs.Manga, error) {
 func (m *MangaService) DeleteById(id string) (int, error) {
 	return db.DeleteMangaById(m.db, id)
 }
+
+func (m *MangaService) AddTimeRule(time_rule, manga_id string) error {
+	return db.AddTimeRule(m.db, time_rule, manga_id)
+}

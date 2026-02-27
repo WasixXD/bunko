@@ -14,28 +14,47 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
+	"github.com/go-co-op/gocron/v2"
 )
 
 type Resolver struct {
 	// Timer to check for new mangas
 	CheckMangaTimer time.Ticker
 
+	// Timer to update the status of a manga
 	UpdateStatusTimer time.Ticker
-	Database          *sql.DB
-	Downloaders       *downloader.DownloaderLock
+
+	// Timer to check for new time rules
+	CheckTimeRulesTimer time.Ticker
+
+	Database    *sql.DB
+	Downloaders *downloader.DownloaderLock
+
+	Scheduler gocron.Scheduler
+	TimeRules []string
 }
 
 func NewResolver(check time.Duration, db *sql.DB) *Resolver {
+	s, _ := gocron.NewScheduler()
 
 	return &Resolver{
-		CheckMangaTimer:   *time.NewTicker(check),
-		UpdateStatusTimer: *time.NewTicker(time.Duration(2000 * time.Millisecond)),
-		Database:          db,
-		Downloaders:       downloader.NewDownloaderBy(50, db),
+		CheckMangaTimer:     *time.NewTicker(check),
+		UpdateStatusTimer:   *time.NewTicker(time.Duration(2000 * time.Millisecond)),
+		CheckTimeRulesTimer: *time.NewTicker(time.Duration(10_000 * time.Millisecond)),
+		Database:            db,
+		Downloaders:         downloader.NewDownloaderBy(50, db),
+		Scheduler:           s,
+		TimeRules:           []string{},
 	}
 
 }
 
+/*
+checkNewManga() *structs.Manga
+
+This functions is responsable for checking if any manga was added into
+the database.
+*/
 func (r *Resolver) checkNewManga() *structs.Manga {
 
 	var manga structs.Manga
@@ -51,7 +70,12 @@ func (r *Resolver) checkNewManga() *structs.Manga {
 	return &manga
 }
 
-// TODO: Refactor make the structs functionalities more focused
+/*
+findChapters(manga_id int) ([]structs.Chapter, error)
+
+This function selects the provider and url from the database
+and call the right provider to get chapters on its website.
+*/
 func (r *Resolver) findChapters(manga_id int) ([]structs.Chapter, error) {
 
 	var providerName, url string
@@ -73,9 +97,14 @@ func (r *Resolver) findChapters(manga_id int) ([]structs.Chapter, error) {
 
 }
 
-// Seems likely that anilist just set the covers as jpg
-func (r *Resolver) downloadCover(manga_id int, manga_path, url string) error {
+/*
+downloadCover(manga_id int, manga_path, url string) error
 
+This functions receives is resposible to download the cover from
+anilist so the workers can use it.
+*/
+func (r *Resolver) downloadCover(manga_id int, manga_path, url string) error {
+	// Seems likely that anilist just set the covers as jpg
 	absPath := fmt.Sprintf("%s/cover.jpg", manga_path)
 
 	file, err := os.Create(absPath)
@@ -104,12 +133,33 @@ func (r *Resolver) downloadCover(manga_id int, manga_path, url string) error {
 	return nil
 }
 
+/*
+notifyWorkers()
+
+This functions is responsible for waking up workers so they can
+start downloading the chapters.
+*/
 func (r *Resolver) notifyWorkers() {
 	r.Downloaders.Mutex.Lock()
 	r.Downloaders.Cond.Broadcast()
 	r.Downloaders.Mutex.Unlock()
 }
 
+/*
+persistMangaData(
+
+	manga *structs.Manga,
+	metadata *structs.AnilistMetadataResponse,
+	chapters []structs.Chapter,
+
+) error
+
+This functions is a series of steps that the resolver take to add all information
+needed right back into the database. This consists of:
+1. Settings the metadata into the mangas table.
+2. Adding jobs into the download queue.
+3. Set the right status for the manga.
+*/
 func (r *Resolver) persistMangaData(
 	manga *structs.Manga,
 	metadata *structs.AnilistMetadataResponse,
@@ -142,11 +192,29 @@ func (r *Resolver) persistMangaData(
 	return tx.Commit()
 }
 
+/*
+prepareFilesystem() error
+
+This function creates the right folders to where the manga will be downloaded
+*/
 func (r *Resolver) prepareFilesystem(manga *structs.Manga) error {
 	dir := filepath.Dir(*manga.MangaPath + "/")
 	return os.MkdirAll(dir, 0755)
 }
 
+/*
+processNextManga() error
+
+This function is a series of steps the resolver take to start the download
+of a manga. This consists of:
+1. Checking if any new manga was added.
+2. Preparing the filesystem.
+3. Get the metadata from anilist.
+4. Download the manga cover.
+5. Find the chapters available to download.
+6. Persist the data into the database.
+7. Notify all workers.
+*/
 func (r *Resolver) processNextManga() error {
 	manga := r.checkNewManga()
 	if manga == nil {
@@ -179,7 +247,13 @@ func (r *Resolver) processNextManga() error {
 	return nil
 }
 
-func (r *Resolver) UpdateStatus() error {
+/*
+updateStatus() error
+
+This is a side job that the resolver takes to check if all downloads
+were concluded.
+*/
+func (r *Resolver) updateStatus() error {
 	mangas, err := db.GetAllMangas(r.Database)
 	if err != nil {
 		return err
@@ -208,7 +282,78 @@ func (r *Resolver) UpdateStatus() error {
 	return nil
 }
 
+func (r *Resolver) diffChapter() error {
+	log.Info("[Resolver.diffChapter()] TODO")
+	return nil
+}
+
+// TODO: Refactor
+func (r *Resolver) checkForTimeRules() error {
+	query := `
+		SELECT count(*) 
+		FROM cron
+	`
+
+	var newTimeRules int
+	err := r.Database.QueryRow(query).Scan(&newTimeRules)
+	if err != nil {
+		return err
+	}
+
+	currentTimeRules := len(r.TimeRules)
+
+	// this will happens most of times
+	if newTimeRules == currentTimeRules {
+		return nil
+	}
+
+	log.Info("[Resolver.checkForTimeRules] Updating rules...")
+	// add job
+	if newTimeRules > currentTimeRules {
+		query = `
+			SELECT *
+			FROM cron
+		`
+		rows, err := r.Database.Query(query)
+
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var cron structs.Cron
+
+			err := rows.Scan(
+				&cron.MangaId,
+				&cron.Rule,
+				&cron.LastUpdate,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			strMangaId := fmt.Sprintf("%d", cron.MangaId)
+			r.Scheduler.NewJob(
+				gocron.CronJob(cron.Rule, false),
+				gocron.NewTask(r.diffChapter),
+				gocron.WithTags(strMangaId),
+			)
+			r.TimeRules = append(r.TimeRules, strMangaId)
+		}
+		return nil
+	}
+
+	if newTimeRules < currentTimeRules {
+		log.Info("[Resolver.checkForTimeRules()] newTimeRules < currentTimeRules")
+		return nil
+	}
+
+	return nil
+}
+
 func (r *Resolver) Work() {
+	r.Scheduler.Start()
 	for {
 		select {
 		case <-r.CheckMangaTimer.C:
@@ -216,7 +361,12 @@ func (r *Resolver) Work() {
 				log.Warn(err)
 			}
 		case <-r.UpdateStatusTimer.C:
-			if err := r.UpdateStatus(); err != nil && err != sql.ErrNoRows {
+			if err := r.updateStatus(); err != nil && err != sql.ErrNoRows {
+				log.Warn(err)
+			}
+
+		case <-r.CheckTimeRulesTimer.C:
+			if err := r.checkForTimeRules(); err != nil {
 				log.Warn(err)
 			}
 
