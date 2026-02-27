@@ -39,6 +39,7 @@ func NewResolver(check time.Duration, db *sql.DB) *Resolver {
 func (r *Resolver) checkNewManga() *structs.Manga {
 
 	var manga structs.Manga
+	// TODO: Could be a db.operation
 	r.Database.QueryRow("SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'").
 		Scan(&manga.MangaId, &manga.Name, &manga.MangaPath, &manga.Provider, &manga.Status, &manga.Url)
 
@@ -98,7 +99,6 @@ func (r *Resolver) downloadCover(manga_id int, manga_path, url string) error {
 		return err
 	}
 
-	// TODO: No. This is a nasty hack.
 	r.Database.Exec("UPDATE mangas SET cover_path = ? WHERE manga_id = ?", url, manga_id)
 
 	return nil
@@ -185,6 +185,7 @@ func (r *Resolver) UpdateStatus() error {
 		return err
 	}
 
+	// TODO: turn into a db.operation
 	const query = `
 		SELECT * 
 		FROM download_queue 
