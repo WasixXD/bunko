@@ -3,7 +3,10 @@ package services
 import (
 	"bunko/backend/db"
 	"bunko/backend/structs"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -187,6 +190,44 @@ func (m *MangaService) SuggestPaths(path string) (structs.PathSuggestionResponse
 	}, nil
 }
 
+func (m *MangaService) UpdateMetadata(id string) (structs.Manga, error) {
+	manga, err := db.GetMangaById(m.db, id)
+	if err != nil {
+		return manga, err
+	}
+
+	metadata, err := structs.AnilistMetadataQuery(manga.Name)
+	if err != nil {
+		return manga, err
+	}
+
+	tx, err := m.db.Beginx()
+	if err != nil {
+		return manga, err
+	}
+
+	defer tx.Rollback()
+
+	if err := db.AddMetadataToManga(tx, manga.MangaId, manga.Url, *metadata); err != nil {
+		return manga, err
+	}
+
+	if manga.MangaPath != nil {
+		if err := m.downloadCover(*manga.MangaPath, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+			return manga, err
+		}
+		if err := db.SetMangaCoverPath(tx, manga.MangaId, metadata.Data.Media.CoverImage.ExtraLarge); err != nil {
+			return manga, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return manga, err
+	}
+
+	return db.GetMangaById(m.db, id)
+}
+
 func expandUserPath(path string) (string, string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -207,6 +248,41 @@ func expandUserPath(path string) (string, string) {
 func normalizeFilesystemPath(path string) string {
 	expandedPath, _ := expandUserPath(strings.TrimSpace(path))
 	return filepath.Clean(expandedPath)
+}
+
+func (m *MangaService) downloadCover(mangaPath, url string) error {
+	absPath := filepath.Join(mangaPath, "cover.jpg")
+
+	file, err := os.Create(absPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	if _, err := file.Write(body); err != nil {
+		return err
+	}
+	return nil
+}
+
+func IsDatabaseLockedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), "database is locked") ||
+		errors.Is(err, os.ErrDeadlineExceeded)
 }
 
 func dedupePathSuggestions(suggestions []structs.PathSuggestion) []structs.PathSuggestion {

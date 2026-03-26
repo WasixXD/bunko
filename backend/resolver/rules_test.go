@@ -166,6 +166,80 @@ func TestDiffChapterNoopWhenNothingIsMissing(t *testing.T) {
 	}
 }
 
+func TestUpdateStatusKeepsDownloadingWhileJobsAreActive(t *testing.T) {
+	db := setupResolverTestDB(t)
+
+	mangaPath := t.TempDir()
+	_, err := db.Exec(`
+		INSERT INTO mangas (manga_id, name, slug, status, provider, url, manga_path)
+		VALUES (1, 'Test Manga', 'test_manga', 'downloading', 'fake', 'https://example.com/manga', ?)
+	`, mangaPath)
+	if err != nil {
+		t.Fatalf("insert manga: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO download_queue (manga_id, name, url, status, provider, path_to_download)
+		VALUES
+			(1, 'Chapter 1', 'https://example.com/ch1', 'completed', 'fake', ?),
+			(1, 'Chapter 2', 'https://example.com/ch2', 'downloading', 'fake', ?)
+	`, filepath.Join(mangaPath, "Chapter 1"), filepath.Join(mangaPath, "Chapter 2"))
+	if err != nil {
+		t.Fatalf("insert queue rows: %v", err)
+	}
+
+	resolver := &Resolver{Database: db}
+	if err := resolver.updateStatus(); err != nil {
+		t.Fatalf("updateStatus: %v", err)
+	}
+
+	var status string
+	if err := db.Get(&status, `SELECT status FROM mangas WHERE manga_id = 1`); err != nil {
+		t.Fatalf("select manga status: %v", err)
+	}
+
+	if status != "downloading" {
+		t.Fatalf("expected status downloading, got %q", status)
+	}
+}
+
+func TestUpdateStatusMarksCompletedWhenAllJobsAreCompleted(t *testing.T) {
+	db := setupResolverTestDB(t)
+
+	mangaPath := t.TempDir()
+	_, err := db.Exec(`
+		INSERT INTO mangas (manga_id, name, slug, status, provider, url, manga_path)
+		VALUES (1, 'Test Manga', 'test_manga', 'downloading', 'fake', 'https://example.com/manga', ?)
+	`, mangaPath)
+	if err != nil {
+		t.Fatalf("insert manga: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO download_queue (manga_id, name, url, status, provider, path_to_download)
+		VALUES
+			(1, 'Chapter 1', 'https://example.com/ch1', 'completed', 'fake', ?),
+			(1, 'Chapter 2', 'https://example.com/ch2', 'completed', 'fake', ?)
+	`, filepath.Join(mangaPath, "Chapter 1"), filepath.Join(mangaPath, "Chapter 2"))
+	if err != nil {
+		t.Fatalf("insert queue rows: %v", err)
+	}
+
+	resolver := &Resolver{Database: db}
+	if err := resolver.updateStatus(); err != nil {
+		t.Fatalf("updateStatus: %v", err)
+	}
+
+	var status string
+	if err := db.Get(&status, `SELECT status FROM mangas WHERE manga_id = 1`); err != nil {
+		t.Fatalf("select manga status: %v", err)
+	}
+
+	if status != "completed" {
+		t.Fatalf("expected status completed, got %q", status)
+	}
+}
+
 func setupResolverTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 

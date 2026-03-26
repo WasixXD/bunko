@@ -183,7 +183,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(242, 251, 235, 0.3);
-  width: 52px;
+  width: 76px;
   flex-shrink: 0;
   padding-top: 2px;
 }
@@ -223,6 +223,38 @@
   justify-content: flex-end;
   border-top: 1px solid rgba(242, 251, 235, 0.06);
   flex-shrink: 0;
+}
+
+.mdd__action-row {
+  display: flex;
+  gap: 12px;
+}
+
+.mdd__btn--secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(58, 143, 255, 0.35);
+  background: rgba(58, 143, 255, 0.08);
+  color: #3a8fff;
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.mdd__btn--secondary:hover:not(:disabled) {
+  background: rgba(58, 143, 255, 0.18);
+  border-color: rgba(58, 143, 255, 0.6);
+}
+
+.mdd__btn--secondary:disabled,
+.mdd__delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .mdd__delete-btn {

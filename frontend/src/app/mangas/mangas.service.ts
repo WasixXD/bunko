@@ -16,6 +16,18 @@ export class MangaService {
     return this.http.get<Manga[]>(`${environment.backendUrl}/mangas`)
   }
 
+  getMangaById(id: number): Observable<Manga> {
+    return this.http.get<Manga>(`${environment.backendUrl}/mangas/get/?id=${id}`);
+  }
+
+  deleteManga(id: number): Observable<unknown> {
+    return this.http.delete(`${environment.backendUrl}/mangas/delete/?id=${id}`);
+  }
+
+  updateMetadata(id: number): Observable<Manga> {
+    return this.http.post<Manga>(`${environment.backendUrl}/mangas/update-metadata/?id=${id}`, {});
+  }
+
   validatePath(path: string): Observable<PathValidationResponse> {
     return this.http.post<PathValidationResponse>(`${environment.backendUrl}/validate/path`, { path });
   }

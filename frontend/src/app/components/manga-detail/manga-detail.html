@@ -76,6 +76,10 @@
               </div>
             }
             <div class="mdd__detail-row">
+              <span class="mdd__detail-label">Metadata</span>
+              <span class="mdd__detail-value">{{ metadataUpdatedAt }}</span>
+            </div>
+            <div class="mdd__detail-row">
               <span class="mdd__detail-label">Path</span>
               <span class="mdd__detail-value mdd__detail-value--mono">{{ m.manga_path }}</span>
             </div>
@@ -114,10 +118,21 @@
               </div>
             </div>
           } @else {
-            <button class="mdd__delete-btn" type="button" (click)="requestDelete()">
-              <i class="pi pi-trash"></i>
-              Delete
-            </button>
+            <div class="mdd__action-row">
+              <button class="mdd__btn mdd__btn--secondary" type="button" [disabled]="updatingMetadata()" (click)="updateMetadata(m.manga_id)">
+                @if (updatingMetadata()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                  Updating...
+                } @else {
+                  <i class="pi pi-refresh"></i>
+                  Update metadata
+                }
+              </button>
+              <button class="mdd__delete-btn" type="button" [disabled]="updatingMetadata()" (click)="requestDelete()">
+                <i class="pi pi-trash"></i>
+                Delete
+              </button>
+            </div>
           }
         </div>
       </div>

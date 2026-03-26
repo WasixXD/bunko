@@ -7,6 +7,7 @@ type ComicInfo struct {
 	// 0 if ended otherwise is ongoing
 	PublicationStatus int    `xml:"Count" db:"publication_status"`
 	Summary           string `xml:"Summary" db:"summary"`
+	Writer            string `xml:"Writer" db:"writer"`
 	Year              int    `xml:"Year" db:"year"`
 	Month             int    `xml:"Month" db:"month"`
 	Day               int    `xml:"Day" db:"day"`

@@ -169,19 +169,21 @@ func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path st
 	comic := structs.ComicInfo{}
 	sql := `
 		SELECT 
-			COALESCE(name, '') AS series,
-			COALESCE(localized_name, '') AS localized_series,
-			COALESCE(web_link, '') AS web,
+			COALESCE(m.name, '') AS series,
+			COALESCE(md.localized_name, '') AS localized_series,
+			COALESCE(md.web_link, '') AS web,
 			CASE 
-				WHEN publication_status = 'RELEASING' THEN 1
+				WHEN md.publication_status = 'RELEASING' THEN 1
 				ELSE 0
 			END AS publication_status,
-			COALESCE(summary, '') AS summary,
-			COALESCE(start_year, 0) AS year,
-			COALESCE(start_month, 0) AS month,
-			COALESCE(start_day, 0) AS day
-		FROM mangas
-		WHERE manga_id = ?
+			COALESCE(md.summary, '') AS summary,
+			COALESCE(md.author, '') AS writer,
+			COALESCE(md.start_year, 0) AS year,
+			COALESCE(md.start_month, 0) AS month,
+			COALESCE(md.start_day, 0) AS day
+		FROM mangas m
+		LEFT JOIN manga_metadata md ON md.manga_id = m.manga_id
+		WHERE m.manga_id = ?
 	`
 	if err := d.Database.Get(&comic, sql, manga_id); err != nil {
 		return err

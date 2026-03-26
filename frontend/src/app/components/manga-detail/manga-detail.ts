@@ -1,9 +1,8 @@
-import { Component, model, input, inject, signal, effect, output } from '@angular/core';
+import { Component, effect, inject, input, model, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { DialogModule } from 'primeng/dialog';
 import { Manga } from 'app/mangas/mangas.model';
-import { environment } from 'app/environments/environment';
+import { MangaService } from 'app/mangas/mangas.service';
 
 @Component({
   selector: 'app-manga-detail-dialog',
@@ -16,13 +15,14 @@ export class MangaDetailDialogComponent {
   visible = model<boolean>(false);
   mangaId = input<number | null>(null);
 
-  private http = inject(HttpClient);
+  private mangaService = inject(MangaService);
 
   manga = signal<Manga | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
   confirmingDelete = signal(false);
   deleting = signal(false);
+  updatingMetadata = signal(false);
   mangaDeleted = output<void>();
 
   constructor() {
@@ -39,7 +39,7 @@ export class MangaDetailDialogComponent {
     this.error.set(null);
     this.manga.set(null);
 
-    this.http.get<Manga>(`${environment.backendUrl}/mangas/get/?id=${id}`).subscribe({
+    this.mangaService.getMangaById(id).subscribe({
       next: (data) => {
         this.manga.set(data);
         this.loading.set(false);
@@ -67,6 +67,21 @@ export class MangaDetailDialogComponent {
     return parts.join(' / ');
   }
 
+  get metadataUpdatedAt(): string {
+    const value = this.manga()?.metadata_updated_at;
+    if (!value) return 'Never';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(date);
+  }
+
   close(): void {
     this.visible.set(false);
     this.manga.set(null);
@@ -85,7 +100,7 @@ export class MangaDetailDialogComponent {
     this.deleting.set(true);
     this.error.set(null);
 
-    this.http.delete(`${environment.backendUrl}/mangas/delete/?id=${id}`).subscribe({
+    this.mangaService.deleteManga(id).subscribe({
       next: () => {
         this.deleting.set(false);
         this.visible.set(false);
@@ -95,6 +110,22 @@ export class MangaDetailDialogComponent {
         this.error.set('Failed to delete manga.');
         this.deleting.set(false);
         this.confirmingDelete.set(false);
+      },
+    });
+  }
+
+  updateMetadata(id: number): void {
+    this.updatingMetadata.set(true);
+    this.error.set(null);
+
+    this.mangaService.updateMetadata(id).subscribe({
+      next: (manga) => {
+        this.manga.set(manga);
+        this.updatingMetadata.set(false);
+      },
+      error: () => {
+        this.error.set('Failed to update metadata.');
+        this.updatingMetadata.set(false);
       },
     });
   }

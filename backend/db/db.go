@@ -19,10 +19,13 @@ func InitDb(dbPath string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("could not create sqlite3 file: %w", err)
 	}
 
-	db, err := sqlx.Open("sqlite3", dbPath+"?_foreign_keys=on")
+	db, err := sqlx.Open("sqlite3", dbPath+"?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL")
 	if err != nil {
 		return nil, fmt.Errorf("could not open sqlite3 file: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	if err := runMigrations(db.DB); err != nil {
 		return nil, fmt.Errorf("could not execute migrations: %w", err)

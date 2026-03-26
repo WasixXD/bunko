@@ -3,7 +3,6 @@ package resolver
 import (
 	"bunko/backend/db"
 	"bunko/backend/structs"
-	"database/sql"
 	"fmt"
 
 	"github.com/charmbracelet/log"
@@ -16,24 +15,30 @@ func (r *Resolver) updateStatus() error {
 		return err
 	}
 
-	const query = `
-		SELECT 1
-		FROM download_queue 
-		WHERE manga_id = ?
-		AND status = 'pending'
-		LIMIT 1
-	`
-
 	for _, manga := range mangas {
-		var pending int
-		err := r.Database.Get(&pending, query, manga.MangaId)
-		if err == sql.ErrNoRows && manga.Status != "completed" {
-			log.Info(fmt.Sprintf("[Resolver] manga %s set as completed", manga.Name))
-			db.SetMangaCompleted(r.Database, manga.MangaId)
+		counts, err := db.GetMangaQueueStatusCounts(r.Database, manga.MangaId)
+		if err != nil {
+			return err
+		}
+
+		nextStatus := manga.Status
+		switch {
+		case counts["pending"] > 0 || counts["downloading"] > 0:
+			nextStatus = "downloading"
+		case len(counts) > 0:
+			nextStatus = "completed"
+		}
+
+		if nextStatus == manga.Status {
 			continue
 		}
 
-		if err != nil {
+		log.Info(
+			fmt.Sprintf("[Resolver] manga %s status updated", manga.Name),
+			"from", manga.Status,
+			"to", nextStatus,
+		)
+		if err := db.SetMangaStatus(r.Database, manga.MangaId, nextStatus); err != nil {
 			return err
 		}
 	}

@@ -9,6 +9,31 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const mangaSelectColumns = `
+	SELECT
+		m.manga_id,
+		m.name,
+		m.slug,
+		m.status,
+		m.provider,
+		m.url,
+		m.cover_path,
+		m.manga_path,
+		md.localized_name,
+		md.publication_status,
+		md.summary,
+		md.start_year,
+		md.start_month,
+		md.start_day,
+		md.author,
+		md.art,
+		md.web_link,
+		md.metadata_updated_at,
+		m.created_at
+	FROM mangas m
+	LEFT JOIN manga_metadata md ON md.manga_id = m.manga_id
+`
+
 func AddMangaToDB(db *sqlx.DB, manga structs.MangaPost) (int, error) {
 
 	var manga_id int
@@ -33,10 +58,8 @@ func AddMangaToDB(db *sqlx.DB, manga structs.MangaPost) (int, error) {
 }
 
 func GetAllMangas(db *sqlx.DB) ([]structs.Manga, error) {
-
-	sql := `SELECT * FROM mangas`
 	var mangas []structs.Manga
-	if err := db.Select(&mangas, sql); err != nil {
+	if err := db.Select(&mangas, mangaSelectColumns); err != nil {
 		return nil, err
 	}
 
@@ -94,31 +117,48 @@ func AddMetadataToManga(
 ) error {
 
 	media := metadata.Data.Media
+	author, art := metadata.Creators()
 
 	const query = `
-		UPDATE mangas
-		SET
-			localized_name = ?,
-			publication_status = ?,
-			summary = ?,
-			start_year = ?,
-			start_month = ?,
-			start_day = ?,
-			web_link = ?,
+		INSERT INTO manga_metadata (
+			manga_id,
+			localized_name,
+			publication_status,
+			summary,
+			start_year,
+			start_month,
+			start_day,
+			author,
+			art,
+			web_link,
+			metadata_updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+		ON CONFLICT(manga_id) DO UPDATE SET
+			localized_name = excluded.localized_name,
+			publication_status = excluded.publication_status,
+			summary = excluded.summary,
+			start_year = excluded.start_year,
+			start_month = excluded.start_month,
+			start_day = excluded.start_day,
+			author = excluded.author,
+			art = excluded.art,
+			web_link = excluded.web_link,
 			metadata_updated_at = datetime('now')
-		WHERE manga_id = ?
 	`
 
 	_, err := tx.Exec(
 		query,
+		mangaID,
 		media.Title.Native,
 		media.Status,
 		media.Description,
 		media.StartDate.Year,
 		media.StartDate.Month,
 		media.StartDate.Day,
+		nullIfEmpty(author),
+		nullIfEmpty(art),
 		mangaURL,
-		mangaID,
 	)
 
 	if err != nil {
@@ -133,17 +173,32 @@ func AddMetadataToManga(
 }
 
 func SetMangaCompleted(db *sqlx.DB, manga_id int) error {
+	return SetMangaStatus(db, manga_id, "completed")
+}
+
+func SetMangaStatus(db *sqlx.DB, mangaID int, status string) error {
 	const query = `
 		UPDATE mangas 
-		SET status = 'completed'
+		SET status = ?
 		WHERE manga_id = ?
 	`
-	_, err := db.Exec(query, manga_id)
+	_, err := db.Exec(query, status, mangaID)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func SetMangaCoverPath(tx *sqlx.Tx, mangaID int, coverPath string) error {
+	const query = `
+		UPDATE mangas
+		SET cover_path = ?
+		WHERE manga_id = ?
+	`
+
+	_, err := tx.Exec(query, coverPath, mangaID)
+	return err
 }
 
 func GetAllJobs(db *sqlx.DB) ([]structs.ChapterJobs, error) {
@@ -160,10 +215,8 @@ func GetAllJobs(db *sqlx.DB) ([]structs.ChapterJobs, error) {
 }
 
 func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
-	const query = `
-		SELECT *
-		FROM mangas
-		WHERE manga_id = ?
+	query := mangaSelectColumns + `
+		WHERE m.manga_id = ?
 	`
 	var manga structs.Manga
 
@@ -174,6 +227,13 @@ func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
 	}
 
 	return manga, nil
+}
+
+func nullIfEmpty(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
 }
 
 func DeleteMangaById(db *sqlx.DB, id string) (int, error) {
@@ -269,6 +329,31 @@ func GetAllTimeRules(db *sqlx.DB) ([]structs.Cron, error) {
 	}
 
 	return crons, nil
+}
+
+func GetMangaQueueStatusCounts(db *sqlx.DB, mangaID int) (map[string]int, error) {
+	const query = `
+		SELECT status, COUNT(*) AS total
+		FROM download_queue
+		WHERE manga_id = ?
+		GROUP BY status
+	`
+
+	var rows []struct {
+		Status string `db:"status"`
+		Total  int    `db:"total"`
+	}
+
+	if err := db.Select(&rows, query, mangaID); err != nil {
+		return nil, err
+	}
+
+	counts := make(map[string]int, len(rows))
+	for _, row := range rows {
+		counts[row.Status] = row.Total
+	}
+
+	return counts, nil
 }
 
 func GetDeletedMangaPaths(db *sqlx.DB) ([]string, error) {

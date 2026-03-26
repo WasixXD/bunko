@@ -13,6 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func handleRequestError(c *gin.Context, err error, fallbackMessage string) {
+	log.Error(err.Error())
+	if services.IsDatabaseLockedError(err) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Another background task is using the database. Please try again in a moment.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": fallbackMessage})
+}
+
 func HandleMain(serv *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusOK, fmt.Sprintf("Running Bunko %s", BUNKO_VERSION))
@@ -26,21 +38,19 @@ func HandleAddManga(serv *services.Services) gin.HandlerFunc {
 
 		if err := c.ShouldBindJSON(&json); err != nil {
 			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid request."})
 			return
 		}
 
 		id, err := serv.Manga.AddManga(json)
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not add manga.")
 			return
 		}
 
 		manga_id_str := fmt.Sprintf("%d", id)
 		if err = serv.Manga.AddTimeRule(json.TimeRule, manga_id_str); err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not save the schedule.")
 			return
 		}
 
@@ -60,12 +70,29 @@ func HandleValidatePath(serv *services.Services) gin.HandlerFunc {
 
 		response, err := serv.Manga.ValidatePath(req.Path)
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not validate the path.")
 			return
 		}
 
 		c.JSON(http.StatusOK, response)
+	}
+}
+
+func HandleUpdateMangaMetadata(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing manga id"})
+			return
+		}
+
+		manga, err := serv.Manga.UpdateMetadata(id)
+		if err != nil {
+			handleRequestError(c, err, "Could not update metadata.")
+			return
+		}
+
+		c.JSON(http.StatusOK, manga)
 	}
 }
 
@@ -81,8 +108,7 @@ func HandleSuggestPath(serv *services.Services) gin.HandlerFunc {
 
 		response, err := serv.Manga.SuggestPaths(req.Path)
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not list path suggestions.")
 			return
 		}
 
@@ -106,8 +132,8 @@ func HandleMangas(serv *services.Services) gin.HandlerFunc {
 		mangas, err := serv.Manga.GetAll()
 
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not load mangas.")
+			return
 		}
 
 		c.JSON(http.StatusOK, mangas)
@@ -120,8 +146,8 @@ func HandleMangasGet(serv *services.Services) gin.HandlerFunc {
 
 		manga, err := serv.Manga.GetById(q)
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not load manga details.")
+			return
 		}
 
 		c.JSON(http.StatusOK, manga)
@@ -135,8 +161,8 @@ func HandleMangasDelete(serv *services.Services) gin.HandlerFunc {
 		_, err := serv.Manga.DeleteById(q)
 
 		if err != nil {
-			log.Error(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleRequestError(c, err, "Could not delete manga.")
+			return
 		}
 		c.JSON(http.StatusOK, gin.H{"msg": "deleted"})
 	}
@@ -165,8 +191,8 @@ func HandleQueue(serv *services.Services) gin.HandlerFunc {
 				jobs, err := serv.Queue.GetAll()
 
 				if err != nil {
-					log.Error(err.Error())
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					handleRequestError(c, err, "Could not load queue.")
+					return
 				}
 
 				jsonData, _ := json.Marshal(jobs)
@@ -188,6 +214,7 @@ func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.POST("/add/manga", HandleAddManga(serv))
 	r.POST("/validate/path", HandleValidatePath(serv))
 	r.POST("/suggest/path", HandleSuggestPath(serv))
+	r.POST("/mangas/update-metadata/", HandleUpdateMangaMetadata(serv))
 
 	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 }
