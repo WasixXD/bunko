@@ -1,61 +1,55 @@
 package mangapill
 
 import (
+	"bunko/backend/providers/providerutils"
 	"bunko/backend/structs"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-const MANGA_PILL_DEFAULT_URL = "https://mangapill.com"
-const MANGA_PILL = "mangapill"
+const defaultURL = "https://mangapill.com"
+const providerName = "mangapill"
 
 type Mangapill struct {
 }
 
 func (m *Mangapill) Search(manga_name string) ([]structs.MangaProps, error) {
-	url := fmt.Sprintf("%s/quick-search?q=%s", MANGA_PILL_DEFAULT_URL, manga_name)
+	url := fmt.Sprintf("%s/quick-search?q=%s", defaultURL, url.QueryEscape(manga_name))
 	links := []structs.MangaProps{}
 
-	res, err := http.Get(url)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-
+	doc, err := providerutils.FetchDocument(url, providerutils.RequestConfig{})
 	if err != nil {
 		return nil, err
 	}
 
 	doc.Find("a.bg-card").Each(func(i int, s *goquery.Selection) {
-
 		if i >= 3 {
 			return
 		}
 
 		href, _ := s.Attr("href")
-		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, href)
+		fullURL, err := providerutils.ResolveURL(defaultURL, href)
+		if err != nil {
+			return
+		}
 
 		meta := s.Find("div.flex.flex-wrap > div")
 
 		img, _ := s.Find("img.object-cover").Attr("src")
+		coverPath, err := providerutils.ResolveURL(defaultURL, img)
+		if err != nil {
+			coverPath = img
+		}
 
 		prop := structs.MangaProps{
-			Name:      s.Find("div.font-black").Text(),
-			Year:      meta.Eq(1).Text(),
-			Status:    meta.Eq(2).Text(),
-			Url:       fullUrl,
-			CoverPath: img,
+			Name:      strings.TrimSpace(s.Find("div.font-black").Text()),
+			Year:      strings.TrimSpace(meta.Eq(1).Text()),
+			Status:    strings.TrimSpace(meta.Eq(2).Text()),
+			Url:       fullURL,
+			CoverPath: coverPath,
 		}
 
 		links = append(links, prop)
@@ -67,87 +61,60 @@ func (m *Mangapill) Search(manga_name string) ([]structs.MangaProps, error) {
 func (m *Mangapill) GetAllChapters(url string) ([]structs.Chapter, error) {
 	chapters := []structs.Chapter{}
 
-	res, err := http.Get(url)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-
+	doc, err := providerutils.FetchDocument(url, providerutils.RequestConfig{})
 	if err != nil {
 		return nil, err
 	}
 
 	doc.Find("#chapters a").Each(func(i int, s *goquery.Selection) {
-
-		chapterUrl, _ := s.Attr("href")
+		chapterURL, _ := s.Attr("href")
 		title, _ := s.Attr("title")
 
-		fullUrl := fmt.Sprintf("%s%s", MANGA_PILL_DEFAULT_URL, chapterUrl)
+		fullURL, err := providerutils.ResolveURL(defaultURL, chapterURL)
+		if err != nil {
+			return
+		}
 
 		chapters = append(chapters, structs.Chapter{
-			Url:      fullUrl,
+			Url:      fullURL,
 			Name:     strings.TrimSpace(title),
-			Provider: MANGA_PILL,
+			Provider: providerName,
 		})
 	})
 
 	return chapters, nil
 }
 
-func (m *Mangapill) DownloadChapter(download_url, path_to_download, name string) error {
-
-	res, err := http.Get(download_url)
-
+func (m *Mangapill) DownloadChapter(download_url, path_to_download, _ string) error {
+	doc, err := providerutils.FetchDocument(download_url, providerutils.RequestConfig{})
 	if err != nil {
 		return err
 	}
 
-	defer res.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-
-	if err != nil {
-		return err
-	}
-
+	imageURLs := make([]string, 0)
 	doc.Find("chapter-page img").Each(func(i int, s *goquery.Selection) {
-		link, _ := s.Attr("data-src")
+		link, ok := s.Attr("data-src")
+		if !ok {
+			return
+		}
 
-		req, err := http.NewRequest(http.MethodGet, link, nil)
-
+		fullURL, err := providerutils.ResolveURL(defaultURL, link)
 		if err != nil {
 			return
 		}
 
-		req.Header.Set("Referer", MANGA_PILL_DEFAULT_URL)
-		res, err := http.DefaultClient.Do(req)
-
-		if err != nil {
-			return
-		}
-
-		if res.StatusCode != 200 {
-			fmt.Println("Got differente status code", res.StatusCode)
-			return
-		}
-
-		b, _ := io.ReadAll(res.Body)
-
-		u, _ := url.Parse(link)
-		last := path.Base(u.Path)
-
-		// ./manga_path/manga_name/chapter_name/image
-		absPath := fmt.Sprintf("%s/%s", path_to_download, last)
-
-		if err := os.WriteFile(absPath, b, 0644); err != nil {
-			fmt.Println(err)
-			return
-		}
-
+		imageURLs = append(imageURLs, fullURL)
 	})
+
+	for _, imageURL := range imageURLs {
+		if err := providerutils.SaveURLToDir(imageURL, path_to_download, providerutils.RequestConfig{
+			Headers: map[string]string{
+				"Referer": defaultURL,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
