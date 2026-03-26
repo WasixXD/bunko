@@ -206,3 +206,32 @@ func AddTimeRule(db *sqlx.DB, time_rule, manga_id string) error {
 
 	return nil
 }
+
+func GetQueuedChapterNames(db *sqlx.DB, mangaID int) ([]string, error) {
+	const query = `
+		SELECT name
+		FROM download_queue
+		WHERE manga_id = ?
+	`
+
+	var names []string
+	if err := db.Select(&names, query, mangaID); err != nil {
+		return nil, err
+	}
+
+	return names, nil
+}
+
+func GetAllTimeRules(db *sqlx.DB) ([]structs.Cron, error) {
+	const query = `
+		SELECT manga_id, rule, last_updated_at
+		FROM cron
+	`
+
+	var crons []structs.Cron
+	if err := db.Select(&crons, query); err != nil {
+		return nil, err
+	}
+
+	return crons, nil
+}
