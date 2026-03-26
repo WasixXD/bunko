@@ -10,7 +10,6 @@ services:
       TZ: ${TZ:-UTC}
       BUNKO_DATABASE: /data/bunko.db
       BUNKO_MANGA_PATH: /library
-      BUNKO_LISTEN_ADDR: :3000
     volumes:
       - ./data:/data
       - ./library:/library
