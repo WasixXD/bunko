@@ -1,0 +1,30 @@
+{
+  "/mangas": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/queue": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/quick-search": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/add": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/validate": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/suggest": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  },
+  "/healthz": {
+    "target": "http://localhost:3000",
+    "changeOrigin": true
+  }
+}

@@ -11,8 +11,7 @@ import (
 )
 
 func main() {
-
-	database, err := db.InitDb(server.BUNKO_DATABSE)
+	database, err := db.InitDb(server.DatabasePath())
 
 	if err != nil {
 		log.Fatal(err)
@@ -26,6 +25,6 @@ func main() {
 	serv := services.NewServices(database, downloaders)
 	r := server.SetupRouter(serv)
 
-	fmt.Println("Running on http://localhost:3000")
-	_ = r.Run(":3000")
+	fmt.Printf("Running Bunko %s on http://localhost%s\n", server.Version, server.ListenAddr())
+	_ = r.Run(server.ListenAddr())
 }

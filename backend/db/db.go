@@ -35,6 +35,13 @@ func InitDb(dbPath string) (*sqlx.DB, error) {
 }
 
 func checkOrCreate(path string) error {
+	dir := filepath.Dir(path)
+	if dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err

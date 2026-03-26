@@ -1,13 +1,16 @@
-
-
 services:
-  redis:
-    image: redis:7-alpine
-    ports: 
-      - "6379:6379"
+  bunko:
+    container_name: bunko
+    image: wasixxd/bunko:${BUNKO_VERSION:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      TZ: ${TZ:-UTC}
+      BUNKO_DATABASE: /data/bunko.db
+      BUNKO_LISTEN_ADDR: :3000
+      BUNKO_STATIC_DIR: /app/public/browser
     volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-
-volumes:
-  redis_data:
+      - ./data:/data
+      - ./library:/library

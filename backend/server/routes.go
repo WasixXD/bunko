@@ -27,7 +27,7 @@ func handleRequestError(c *gin.Context, err error, fallbackMessage string) {
 
 func HandleMain(serv *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusOK, fmt.Sprintf("Running Bunko %s", BUNKO_VERSION))
+		c.String(http.StatusOK, fmt.Sprintf("Running Bunko %s", Version))
 	}
 }
 
@@ -222,7 +222,7 @@ func HandleRetryQueueJob(serv *services.Services) gin.HandlerFunc {
 }
 
 func RegisterRoutes(r *gin.Engine, serv *services.Services) {
-	r.GET("/", HandleMain(serv))
+	r.GET("/healthz", HandleMain(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
 	r.GET("/mangas", HandleMangas(serv))
 	r.GET("/mangas/get/", HandleMangasGet(serv))
