@@ -2,13 +2,13 @@ package db
 
 import (
 	"bunko/backend/structs"
-	"database/sql"
 	"fmt"
 
 	"github.com/charmbracelet/log"
+	"github.com/jmoiron/sqlx"
 )
 
-func AddMangaToDB(db *sql.DB, manga structs.MangaPost) (int, error) {
+func AddMangaToDB(db *sqlx.DB, manga structs.MangaPost) (int, error) {
 
 	var manga_id int
 	// ./manga_path/manga_name
@@ -20,63 +20,30 @@ func AddMangaToDB(db *sql.DB, manga structs.MangaPost) (int, error) {
 			VALUES (?, ?, ?, 'pending', ?, ?) 
 			RETURNING manga_id`
 
-	err := db.QueryRow(sql,
+	err := db.Get(&manga_id, sql,
 		manga.Name,
 		slug,
 		manga.ProviderName,
 		manga.Url,
 		absPath,
-	).Scan(&manga_id)
+	)
 
 	return manga_id, err
 }
 
-func GetAllMangas(db *sql.DB) ([]structs.Manga, error) {
+func GetAllMangas(db *sqlx.DB) ([]structs.Manga, error) {
 
 	sql := `SELECT * FROM mangas`
-	rows, err := db.Query(sql)
-	if err != nil {
+	var mangas []structs.Manga
+	if err := db.Select(&mangas, sql); err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var mangas []structs.Manga
-
-	for rows.Next() {
-		var m structs.Manga
-		// TODO: Lets migrate to sqlx to avoid this giants scans
-		err := rows.Scan(
-			&m.MangaId,
-			&m.Name,
-			&m.Slug,
-			&m.Status,
-			&m.Provider,
-			&m.Url,
-			&m.CoverPath,
-			&m.MangaPath,
-			&m.LocalizedName,
-			&m.PublicationStatus,
-			&m.Summary,
-			&m.StartYear,
-			&m.StartMonth,
-			&m.StartDay,
-			&m.Author,
-			&m.WebLink,
-			&m.MetadataUpdatedAt,
-			&m.CreatedAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		mangas = append(mangas, m)
-	}
 	return mangas, nil
 }
 
 func AddChaptersToQueue(
-	tx *sql.Tx,
+	tx *sqlx.Tx,
 	mangaID int,
 	mangaPath string,
 	chapters []structs.Chapter,
@@ -119,7 +86,7 @@ func AddChaptersToQueue(
 }
 
 func AddMetadataToManga(
-	tx *sql.Tx,
+	tx *sqlx.Tx,
 	mangaID int,
 	mangaURL string,
 	metadata structs.AnilistMetadataResponse,
@@ -164,7 +131,7 @@ func AddMetadataToManga(
 	return err
 }
 
-func SetMangaCompleted(db *sql.DB, manga_id int) error {
+func SetMangaCompleted(db *sqlx.DB, manga_id int) error {
 	const query = `
 		UPDATE mangas 
 		SET status = 'completed'
@@ -178,42 +145,20 @@ func SetMangaCompleted(db *sql.DB, manga_id int) error {
 	return nil
 }
 
-func GetAllJobs(db *sql.DB) ([]structs.ChapterJobs, error) {
+func GetAllJobs(db *sqlx.DB) ([]structs.ChapterJobs, error) {
 	const query = `
 		SELECT rowid, * 
 		FROM download_queue
 	`
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
 	var jobs []structs.ChapterJobs
-
-	for rows.Next() {
-		var j structs.ChapterJobs
-
-		err := rows.Scan(
-			&j.RowId,
-			&j.MangaId,
-			&j.Name,
-			&j.Url,
-			&j.Status,
-			&j.Provider,
-			&j.PathToDownload,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-		jobs = append(jobs, j)
+	if err := db.Select(&jobs, query); err != nil {
+		return nil, err
 	}
 
 	return jobs, nil
 }
 
-func GetMangaById(db *sql.DB, id string) (structs.Manga, error) {
+func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
 	const query = `
 		SELECT *
 		FROM mangas
@@ -221,26 +166,7 @@ func GetMangaById(db *sql.DB, id string) (structs.Manga, error) {
 	`
 	var manga structs.Manga
 
-	err := db.QueryRow(query, id).Scan(
-		&manga.MangaId,
-		&manga.Name,
-		&manga.Slug,
-		&manga.Status,
-		&manga.Provider,
-		&manga.Url,
-		&manga.CoverPath,
-		&manga.MangaPath,
-		&manga.LocalizedName,
-		&manga.PublicationStatus,
-		&manga.Summary,
-		&manga.StartYear,
-		&manga.StartMonth,
-		&manga.StartDay,
-		&manga.Author,
-		&manga.WebLink,
-		&manga.MetadataUpdatedAt,
-		&manga.CreatedAt,
-	)
+	err := db.Get(&manga, query, id)
 
 	if err != nil {
 		return manga, err
@@ -249,7 +175,7 @@ func GetMangaById(db *sql.DB, id string) (structs.Manga, error) {
 	return manga, nil
 }
 
-func DeleteMangaById(db *sql.DB, id string) (int, error) {
+func DeleteMangaById(db *sqlx.DB, id string) (int, error) {
 	const query = `
 		DELETE FROM mangas
 		WHERE manga_id = ? 
@@ -266,7 +192,7 @@ func DeleteMangaById(db *sql.DB, id string) (int, error) {
 	return int(rows), err
 }
 
-func AddTimeRule(db *sql.DB, time_rule, manga_id string) error {
+func AddTimeRule(db *sqlx.DB, time_rule, manga_id string) error {
 	const query = `
 		INSERT INTO cron(manga_id, rule)
 		VALUES (?, ?)

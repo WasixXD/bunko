@@ -11,11 +11,11 @@ type Chapter struct {
 }
 
 type ChapterJobs struct {
-	RowId          int    `json:"rowid"`
-	MangaId        int    `json:"manga_id"`
-	Name           string `json:"name"`
-	Url            string `json:"url"`
-	Status         string `json:"status"`
-	Provider       string `json:"provider"`
-	PathToDownload string `json:"path_to_download"`
+	RowId          int    `json:"rowid" db:"rowid"`
+	MangaId        int    `json:"manga_id" db:"manga_id"`
+	Name           string `json:"name" db:"name"`
+	Url            string `json:"url" db:"url"`
+	Status         string `json:"status" db:"status"`
+	Provider       string `json:"provider" db:"provider"`
+	PathToDownload string `json:"path_to_download" db:"path_to_download"`
 }

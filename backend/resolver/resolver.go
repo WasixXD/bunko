@@ -15,6 +15,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/jmoiron/sqlx"
 )
 
 type Resolver struct {
@@ -27,14 +28,14 @@ type Resolver struct {
 	// Timer to check for new time rules
 	CheckTimeRulesTimer time.Ticker
 
-	Database    *sql.DB
+	Database    *sqlx.DB
 	Downloaders *downloader.DownloaderLock
 
 	Scheduler gocron.Scheduler
 	TimeRules []string
 }
 
-func NewResolver(check time.Duration, db *sql.DB) *Resolver {
+func NewResolver(check time.Duration, db *sqlx.DB) *Resolver {
 	s, _ := gocron.NewScheduler()
 
 	return &Resolver{
@@ -58,9 +59,17 @@ the database.
 func (r *Resolver) checkNewManga() *structs.Manga {
 
 	var manga structs.Manga
-	// TODO: Could be a db.operation
-	r.Database.QueryRow("SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'").
-		Scan(&manga.MangaId, &manga.Name, &manga.MangaPath, &manga.Provider, &manga.Status, &manga.Url)
+	err := r.Database.Get(
+		&manga,
+		"SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'",
+	)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		log.Error("[Resolver.checkNewManga] failed to query pending manga", "error", err)
+		return nil
+	}
 
 	if manga.MangaId == 0 {
 		return nil
@@ -78,22 +87,25 @@ and call the right provider to get chapters on its website.
 */
 func (r *Resolver) findChapters(manga_id int) ([]structs.Chapter, error) {
 
-	var providerName, url string
+	var mangaSource struct {
+		Provider string `db:"provider"`
+		URL      string `db:"url"`
+	}
 	sql := `
         SELECT provider, url
         FROM mangas
         WHERE manga_id = ?
     `
 
-	if err := r.Database.QueryRow(sql, manga_id).Scan(&providerName, &url); err != nil {
+	if err := r.Database.Get(&mangaSource, sql, manga_id); err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
 		return nil, err
 	}
 
 	factory := providers.NewProviderFactory()
-	provider := factory.Get(providerName)
+	provider := factory.Get(mangaSource.Provider)
 
-	return provider.GetAllChapters(url)
+	return provider.GetAllChapters(mangaSource.URL)
 
 }
 
@@ -166,7 +178,7 @@ func (r *Resolver) persistMangaData(
 	chapters []structs.Chapter,
 ) error {
 
-	tx, err := r.Database.Begin()
+	tx, err := r.Database.Beginx()
 	if err != nil {
 		return err
 	}
@@ -261,13 +273,15 @@ func (r *Resolver) updateStatus() error {
 
 	// TODO: turn into a db.operation
 	const query = `
-		SELECT * 
+		SELECT 1
 		FROM download_queue 
 		WHERE manga_id = ?
 		AND status = 'pending'
+		LIMIT 1
 	`
 	for _, manga := range mangas {
-		err := r.Database.QueryRow(query, manga.MangaId).Scan()
+		var pending int
+		err := r.Database.Get(&pending, query, manga.MangaId)
 		if err == sql.ErrNoRows && manga.Status != "completed" {
 			log.Info(fmt.Sprintf("[Resolver] manga %s set as completed", manga.Name))
 			db.SetMangaCompleted(r.Database, manga.MangaId)
@@ -295,7 +309,7 @@ func (r *Resolver) checkForTimeRules() error {
 	`
 
 	var newTimeRules int
-	err := r.Database.QueryRow(query).Scan(&newTimeRules)
+	err := r.Database.Get(&newTimeRules, query)
 	if err != nil {
 		return err
 	}
@@ -314,25 +328,12 @@ func (r *Resolver) checkForTimeRules() error {
 			SELECT *
 			FROM cron
 		`
-		rows, err := r.Database.Query(query)
-
-		if err != nil {
+		var crons []structs.Cron
+		if err := r.Database.Select(&crons, query); err != nil {
 			return err
 		}
 
-		for rows.Next() {
-			var cron structs.Cron
-
-			err := rows.Scan(
-				&cron.MangaId,
-				&cron.Rule,
-				&cron.LastUpdate,
-			)
-
-			if err != nil {
-				return err
-			}
-
+		for _, cron := range crons {
 			strMangaId := fmt.Sprintf("%d", cron.MangaId)
 			r.Scheduler.NewJob(
 				gocron.CronJob(cron.Rule, false),

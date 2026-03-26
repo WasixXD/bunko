@@ -3,11 +3,12 @@ package services
 import (
 	"bunko/backend/db"
 	"bunko/backend/structs"
-	"database/sql"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type MangaService struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func (m *MangaService) AddManga(manga structs.MangaPost) (int, error) {

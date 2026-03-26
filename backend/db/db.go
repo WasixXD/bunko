@@ -10,20 +10,21 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func InitDb(dbPath string) (*sql.DB, error) {
+func InitDb(dbPath string) (*sqlx.DB, error) {
 	if err := checkOrCreate(dbPath); err != nil {
 		return nil, fmt.Errorf("could not create sqlite3 file: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=on")
+	db, err := sqlx.Open("sqlite3", dbPath+"?_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("could not open sqlite3 file: %w", err)
 	}
 
-	if err := runMigrations(db); err != nil {
+	if err := runMigrations(db.DB); err != nil {
 		return nil, fmt.Errorf("could not execute migrations: %w", err)
 	}
 

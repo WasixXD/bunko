@@ -3,11 +3,12 @@ package services
 import (
 	"bunko/backend/db"
 	"bunko/backend/structs"
-	"database/sql"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type QueueService struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func (q *QueueService) GetAll() ([]structs.ChapterJobs, error) {

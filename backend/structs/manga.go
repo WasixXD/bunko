@@ -7,31 +7,31 @@ import (
 
 // This struct represents the main information from database mangas table
 type Manga struct {
-	MangaId int `json:"manga_id"`
+	MangaId int `json:"manga_id" db:"manga_id"`
 
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	Name string `json:"name" db:"name"`
+	Slug string `json:"slug" db:"slug"`
 
 	// System status
-	Status string `json:"status"`
+	Status string `json:"status" db:"status"`
 
-	Provider string `json:"provider"`
-	Url      string `json:"url"`
+	Provider string `json:"provider" db:"provider"`
+	Url      string `json:"url" db:"url"`
 
-	CoverPath *string `json:"cover_path"`
-	MangaPath *string `json:"manga_path"`
+	CoverPath *string `json:"cover_path" db:"cover_path"`
+	MangaPath *string `json:"manga_path" db:"manga_path"`
 
-	LocalizedName     *string    `json:"localized_name"`
-	PublicationStatus *string    `json:"publication_status"`
-	Summary           *string    `json:"summary"`
-	StartYear         *int       `json:"start_year"`
-	StartMonth        *int       `json:"start_month"`
-	StartDay          *int       `json:"start_day"`
-	Author            *string    `json:"author"`
-	WebLink           *string    `json:"web_link"`
-	MetadataUpdatedAt *time.Time `json:"metadata_updated_at"`
+	LocalizedName     *string    `json:"localized_name" db:"localized_name"`
+	PublicationStatus *string    `json:"publication_status" db:"publication_status"`
+	Summary           *string    `json:"summary" db:"summary"`
+	StartYear         *int       `json:"start_year" db:"start_year"`
+	StartMonth        *int       `json:"start_month" db:"start_month"`
+	StartDay          *int       `json:"start_day" db:"start_day"`
+	Author            *string    `json:"author" db:"author"`
+	WebLink           *string    `json:"web_link" db:"web_link"`
+	MetadataUpdatedAt *time.Time `json:"metadata_updated_at" db:"metadata_updated_at"`
 
-	CreatedAt *time.Time `json:"created_at"`
+	CreatedAt *time.Time `json:"created_at" db:"created_at"`
 }
 
 func NormalizeName(name string) string {

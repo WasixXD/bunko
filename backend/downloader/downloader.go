@@ -15,10 +15,11 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/log"
+	"github.com/jmoiron/sqlx"
 )
 
 type Downloader struct {
-	Database *sql.DB
+	Database *sqlx.DB
 	Mutex    *sync.Mutex
 	Cond     *sync.Cond
 }
@@ -31,7 +32,7 @@ type DownloaderLock struct {
 
 func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
 
-	tx, err := d.Database.BeginTx(context.Background(), &sql.TxOptions{
+	tx, err := d.Database.BeginTxx(context.Background(), &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
 	if err != nil {
@@ -53,16 +54,7 @@ func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
 		)
 		RETURNING rowid, manga_id, name, url, provider, path_to_download;
     `
-	row := tx.QueryRow(sqlUpdate)
-
-	err = row.Scan(
-		&jb.RowId,
-		&jb.MangaId,
-		&jb.Name,
-		&jb.Url,
-		&jb.Provider,
-		&jb.PathToDownload,
-	)
+	err = tx.Get(jb, sqlUpdate)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +64,7 @@ func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
 }
 
 func (d *Downloader) SetAsCompleted(download_id int) error {
-	tx, err := d.Database.BeginTx(context.Background(), &sql.TxOptions{
+	tx, err := d.Database.BeginTxx(context.Background(), &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
 	if err != nil {
@@ -177,28 +169,23 @@ func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path st
 	comic := structs.ComicInfo{}
 	sql := `
 		SELECT 
-			name, localized_name, web_link,
+			COALESCE(name, '') AS series,
+			COALESCE(localized_name, '') AS localized_series,
+			COALESCE(web_link, '') AS web,
 			CASE 
 				WHEN publication_status = 'RELEASING' THEN 1
 				ELSE 0
-			END as status,
-			summary,
-			start_year, start_month, start_day
+			END AS publication_status,
+			COALESCE(summary, '') AS summary,
+			COALESCE(start_year, 0) AS year,
+			COALESCE(start_month, 0) AS month,
+			COALESCE(start_day, 0) AS day
 		FROM mangas
 		WHERE manga_id = ?
 	`
-	row := d.Database.QueryRow(sql, manga_id)
-
-	row.Scan(
-		&comic.Series,
-		&comic.LocalizedSeries,
-		&comic.Web,
-		&comic.PublicationStatus,
-		&comic.Summary,
-		&comic.Year,
-		&comic.Month,
-		&comic.Day,
-	)
+	if err := d.Database.Get(&comic, sql, manga_id); err != nil {
+		return err
+	}
 	comic.Title = chapter_name
 
 	info, err := xml.MarshalIndent(comic, " ", "  ")
@@ -274,7 +261,7 @@ func (d *Downloader) Run(worker_id int) {
 	}
 }
 
-func NewDownloader(database *sql.DB, mutex *sync.Mutex, cond *sync.Cond) *Downloader {
+func NewDownloader(database *sqlx.DB, mutex *sync.Mutex, cond *sync.Cond) *Downloader {
 	return &Downloader{
 		Database: database,
 		Mutex:    mutex,
@@ -282,7 +269,7 @@ func NewDownloader(database *sql.DB, mutex *sync.Mutex, cond *sync.Cond) *Downlo
 	}
 }
 
-func NewDownloaderBy(n int, database *sql.DB) *DownloaderLock {
+func NewDownloaderBy(n int, database *sqlx.DB) *DownloaderLock {
 	newMutex := sync.Mutex{}
 	newCond := sync.NewCond(&newMutex)
 

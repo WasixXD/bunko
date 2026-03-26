@@ -1,7 +1,7 @@
 package services
 
 import (
-	"database/sql"
+	"github.com/jmoiron/sqlx"
 )
 
 type Services struct {
@@ -9,7 +9,7 @@ type Services struct {
 	Queue *QueueService
 }
 
-func NewServices(database *sql.DB) *Services {
+func NewServices(database *sqlx.DB) *Services {
 	return &Services{
 		Manga: &MangaService{db: database},
 		Queue: &QueueService{db: database},
