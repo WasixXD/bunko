@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: wasixxd/bunko
+  IMAGE_NAME: lucaswasilewski/bunko
 
 jobs:
   docker:

@@ -1,7 +1,7 @@
 services:
   bunko:
     container_name: bunko
-    image: wasixxd/bunko:${BUNKO_VERSION:-latest}
+    image: lucaswasilewski/bunko:${BUNKO_VERSION:-latest}
     pull_policy: always
     restart: unless-stopped
     ports:
