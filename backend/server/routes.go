@@ -31,6 +31,15 @@ func HandleMain(serv *services.Services) gin.HandlerFunc {
 	}
 }
 
+func HandleAppConfig(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"version":            Version,
+			"default_manga_path": DefaultMangaPath(),
+		})
+	}
+}
+
 func HandleAddManga(serv *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -223,6 +232,7 @@ func HandleRetryQueueJob(serv *services.Services) gin.HandlerFunc {
 
 func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/healthz", HandleMain(serv))
+	r.GET("/config", HandleAppConfig(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
 	r.GET("/mangas", HandleMangas(serv))
 	r.GET("/mangas/get/", HandleMangasGet(serv))

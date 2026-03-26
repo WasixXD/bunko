@@ -9,8 +9,8 @@ services:
     environment:
       TZ: ${TZ:-UTC}
       BUNKO_DATABASE: /data/bunko.db
+      BUNKO_MANGA_PATH: /library
       BUNKO_LISTEN_ADDR: :3000
-      BUNKO_STATIC_DIR: /app/public/browser
     volumes:
       - ./data:/data
       - ./library:/library

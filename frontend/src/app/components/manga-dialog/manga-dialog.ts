@@ -50,11 +50,14 @@ export class AddMangaDialogComponent implements OnInit, OnDestroy {
   pathSuggestions = signal<PathSuggestion[]>([]);
   showSuggestions = signal(false);
   activeSuggestionIndex = signal(-1);
+  defaultMangaPath = signal('./mangas');
 
   private readonly pathInput$ = new Subject<string>();
   private pathInputSub?: Subscription;
 
   ngOnInit(): void {
+    this.loadDefaults();
+
     this.pathInputSub = this.pathInput$
       .pipe(
         debounceTime(250),
@@ -94,10 +97,19 @@ export class AddMangaDialogComponent implements OnInit, OnDestroy {
 
   onMangaSelected(manga: MangaSearchResult): void {
     this.selectedManga = manga;
-    this.mangaPath = './mangas';
+    this.mangaPath = this.defaultMangaPath();
     this.pathValidation.set(null);
     this.pathInput$.next(this.mangaPath);
     this.fetchAnilistCover(manga.name);
+  }
+
+  private loadDefaults(): void {
+    this.http
+      .get<{ default_manga_path?: string }>(`${environment.backendUrl}/config`)
+      .pipe(catchError(() => of({ default_manga_path: './mangas' })))
+      .subscribe((config) => {
+        this.defaultMangaPath.set(config.default_manga_path?.trim() || './mangas');
+      });
   }
 
   private fetchAnilistCover(name: string): void {

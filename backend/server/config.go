@@ -25,6 +25,14 @@ func StaticDir() string {
 	return "./public/browser"
 }
 
+func DefaultMangaPath() string {
+	if value := os.Getenv("BUNKO_MANGA_PATH"); value != "" {
+		return value
+	}
+
+	return "./mangas"
+}
+
 func ListenAddr() string {
 	if value := os.Getenv("BUNKO_LISTEN_ADDR"); value != "" {
 		return value
