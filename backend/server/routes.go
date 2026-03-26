@@ -27,21 +27,66 @@ func HandleAddManga(serv *services.Services) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&json); err != nil {
 			log.Error(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 
 		id, err := serv.Manga.AddManga(json)
 		if err != nil {
 			log.Error(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 
 		manga_id_str := fmt.Sprintf("%d", id)
 		if err = serv.Manga.AddTimeRule(json.TimeRule, manga_id_str); err != nil {
 			log.Error(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 
 		c.JSON(http.StatusCreated, gin.H{"manga_id": id})
+	}
+}
+
+func HandleValidatePath(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req structs.PathValidationRequest
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := serv.Manga.ValidatePath(req.Path)
+		if err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+func HandleSuggestPath(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req structs.PathValidationRequest
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := serv.Manga.SuggestPaths(req.Path)
+		if err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 
@@ -141,6 +186,8 @@ func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/queue", HandleQueue(serv))
 
 	r.POST("/add/manga", HandleAddManga(serv))
+	r.POST("/validate/path", HandleValidatePath(serv))
+	r.POST("/suggest/path", HandleSuggestPath(serv))
 
 	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 }

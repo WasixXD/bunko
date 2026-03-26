@@ -65,3 +65,25 @@ type MangaPost struct {
 	Url          string `json:"url"`
 	MangaPath    string `json:"manga_path"`
 }
+
+type PathValidationRequest struct {
+	Path string `json:"path"`
+}
+
+type PathValidationResponse struct {
+	Path     string `json:"path"`
+	Valid    bool   `json:"valid"`
+	Exists   bool   `json:"exists"`
+	CanWrite bool   `json:"can_write"`
+	Message  string `json:"message"`
+}
+
+type PathSuggestion struct {
+	Path  string `json:"path"`
+	Label string `json:"label"`
+}
+
+type PathSuggestionResponse struct {
+	BasePath    string           `json:"base_path"`
+	Suggestions []PathSuggestion `json:"suggestions"`
+}

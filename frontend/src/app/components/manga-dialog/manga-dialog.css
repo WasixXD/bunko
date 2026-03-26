@@ -73,6 +73,83 @@
   border-color: rgba(242, 251, 235, 0.5);
 }
 
+.amd__path-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 2px 0;
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.84rem;
+  color: rgba(242, 251, 235, 0.72);
+}
+
+.amd__path-state--checking {
+  color: rgba(242, 251, 235, 0.65);
+}
+
+.amd__path-state--valid {
+  color: #9fe870;
+}
+
+.amd__path-state--invalid {
+  color: #f87171;
+}
+
+.amd__suggestions {
+  margin-top: 10px;
+  border: 1px solid rgba(242, 251, 235, 0.14);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(13, 18, 17, 0.94);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.amd__suggestion {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #f2fbeb;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px 12px;
+  align-items: center;
+  text-align: left;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.amd__suggestion + .amd__suggestion {
+  border-top: 1px solid rgba(242, 251, 235, 0.08);
+}
+
+.amd__suggestion:hover {
+  background: rgba(242, 251, 235, 0.08);
+}
+
+.amd__suggestion--active {
+  background: rgba(242, 251, 235, 0.12);
+}
+
+.amd__suggestion i {
+  grid-row: 1 / span 2;
+  color: rgba(242, 251, 235, 0.55);
+  align-self: start;
+  margin-top: 2px;
+}
+
+.amd__suggestion-label {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.92rem;
+  color: #f2fbeb;
+}
+
+.amd__suggestion-path {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.78rem;
+  color: rgba(242, 251, 235, 0.55);
+  word-break: break-all;
+}
+
 .amd__cover-area {
   flex: 1;
   border-radius: 16px;

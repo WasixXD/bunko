@@ -2,7 +2,7 @@ package db
 
 import (
 	"bunko/backend/structs"
-	"fmt"
+	"path/filepath"
 
 	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
@@ -12,7 +12,7 @@ func AddMangaToDB(db *sqlx.DB, manga structs.MangaPost) (int, error) {
 
 	var manga_id int
 	// ./manga_path/manga_name
-	absPath := fmt.Sprintf("%s/%s", manga.MangaPath, manga.Name)
+	absPath := filepath.Join(manga.MangaPath, manga.Name)
 	slug := structs.NormalizeName(manga.Name)
 	// TODO: Make this a transaction?
 	sql := `INSERT INTO 
@@ -57,7 +57,7 @@ func AddChaptersToQueue(
 	`
 
 	for _, chapter := range chapters {
-		pathToDownload := fmt.Sprintf("%s/%s", mangaPath, chapter.Name)
+		pathToDownload := filepath.Join(mangaPath, chapter.Name)
 
 		if _, err := tx.Exec(
 			query,

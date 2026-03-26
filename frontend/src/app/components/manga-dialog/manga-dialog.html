@@ -33,9 +33,41 @@
           <input
             class="amd__path-input"
             type="text"
-            placeholder="./mangas/"
+            [(ngModel)]="mangaPath"
+            (ngModelChange)="onPathInput($event)"
+            (focus)="showPathSuggestions()"
+            (blur)="hideSuggestions()"
+            (keydown)="onPathKeydown($event)"
+            placeholder="Type a folder path"
           />
         </div>
+        @if (showSuggestions() && pathSuggestions().length > 0) {
+          <div class="amd__suggestions">
+            @for (suggestion of pathSuggestions(); track suggestion.path; let i = $index) {
+              <button
+                class="amd__suggestion"
+                [class.amd__suggestion--active]="i === activeSuggestionIndex()"
+                type="button"
+                (mousedown)="selectSuggestion(suggestion.path)"
+              >
+                <i class="pi pi-folder-open"></i>
+                <span class="amd__suggestion-label">{{ suggestion.label }}</span>
+                <span class="amd__suggestion-path">{{ suggestion.path }}</span>
+              </button>
+            }
+          </div>
+        }
+        @if (pathChecking()) {
+          <p class="amd__path-state amd__path-state--checking">
+            <i class="pi pi-spin pi-spinner"></i>
+            Checking path...
+          </p>
+        } @else if (pathValidation(); as validation) {
+          <p class="amd__path-state" [class.amd__path-state--valid]="validation.valid" [class.amd__path-state--invalid]="!validation.valid">
+            <i class="pi" [class.pi-check-circle]="validation.valid" [class.pi-times-circle]="!validation.valid"></i>
+            {{ validation.message }}
+          </p>
+        }
       </div>
 
       @if (error()) {
