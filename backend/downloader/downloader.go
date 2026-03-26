@@ -1,20 +1,9 @@
 package downloader
 
 import (
-	"archive/zip"
-	"bunko/backend/providers"
-	"bunko/backend/structs"
-	"context"
 	"database/sql"
-	"encoding/xml"
-	"fmt"
-	"io"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"sync"
 
-	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -30,238 +19,7 @@ type DownloaderLock struct {
 	NWorkers int
 }
 
-func (d *Downloader) ClaimChapter() (*structs.ChapterJobs, error) {
-
-	tx, err := d.Database.BeginTxx(context.Background(), &sql.TxOptions{
-		Isolation: sql.LevelSerializable,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-	jb := &structs.ChapterJobs{}
-
-	sqlUpdate := `
-	   UPDATE download_queue
-		SET status = 'downloading'
-		WHERE rowid = (
-			SELECT rowid
-			FROM download_queue
-			WHERE status = 'pending'
-			ORDER BY manga_id DESC
-			LIMIT 1
-		)
-		RETURNING rowid, manga_id, name, url, provider, path_to_download;
-    `
-	err = tx.Get(jb, sqlUpdate)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return jb, tx.Commit()
-}
-
-func (d *Downloader) SetAsCompleted(download_id int) error {
-	tx, err := d.Database.BeginTxx(context.Background(), &sql.TxOptions{
-		Isolation: sql.LevelSerializable,
-	})
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	sql := `
-		UPDATE download_queue
-		SET status = 'completed'
-		WHERE rowid = ?
-	`
-	_, err = tx.Exec(sql, download_id)
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (d *Downloader) TurnIntoCbz(source string) error {
-	target := fmt.Sprintf("%s.cbz", source)
-
-	zip_file, err := os.Create(target)
-	if err != nil {
-		return err
-	}
-
-	defer zip_file.Close()
-
-	archive := zip.NewWriter(zip_file)
-	defer archive.Close()
-	defer os.RemoveAll(source)
-
-	err = filepath.Walk(source, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		header, err := zip.FileInfoHeader(info)
-
-		if err != nil {
-			return err
-		}
-
-		header.Name, err = filepath.Rel(filepath.Dir(source), path)
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			header.Name += "/"
-		}
-
-		writer, err := archive.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-			_, err = io.Copy(writer, file)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-	destination, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	return err
-}
-
-func (d *Downloader) CreateComicInfo(manga_id int, chapter_name, chapter_path string) error {
-
-	comic := structs.ComicInfo{}
-	sql := `
-		SELECT 
-			COALESCE(m.name, '') AS series,
-			COALESCE(md.localized_name, '') AS localized_series,
-			COALESCE(md.web_link, '') AS web,
-			CASE 
-				WHEN md.publication_status = 'RELEASING' THEN 1
-				ELSE 0
-			END AS publication_status,
-			COALESCE(md.summary, '') AS summary,
-			COALESCE(md.author, '') AS writer,
-			COALESCE(md.start_year, 0) AS year,
-			COALESCE(md.start_month, 0) AS month,
-			COALESCE(md.start_day, 0) AS day
-		FROM mangas m
-		LEFT JOIN manga_metadata md ON md.manga_id = m.manga_id
-		WHERE m.manga_id = ?
-	`
-	if err := d.Database.Get(&comic, sql, manga_id); err != nil {
-		return err
-	}
-	comic.Title = chapter_name
-
-	info, err := xml.MarshalIndent(comic, " ", "  ")
-
-	if err != nil {
-		return err
-	}
-
-	comicInfoPath := fmt.Sprintf("%s/comicinfo.xml", chapter_path)
-	os.WriteFile(comicInfoPath, info, 0755)
-
-	return nil
-}
-
-func (d *Downloader) Run(worker_id int) {
-
-	for {
-		chapter, err := d.ClaimChapter()
-
-		if err == sql.ErrNoRows || chapter == nil {
-			d.Mutex.Lock()
-			for {
-				d.Cond.Wait()
-				break
-			}
-			d.Mutex.Unlock()
-			continue
-		}
-
-		// TODO: If we fail, the job continue to be claimed?
-		if err != nil {
-			log.Error("[Downloader] failed on claim job", "error", err)
-			continue
-		}
-
-		log.Info(fmt.Sprintf("[Downloader:%d] downloading ", worker_id), "chapter", chapter.Name)
-
-		dir := filepath.Dir(chapter.PathToDownload + "/")
-
-		if err = os.MkdirAll(dir, 0755); err != nil {
-			log.Warn(err)
-			return
-		}
-
-		factory := providers.NewProviderFactory()
-		provider := factory.Get(chapter.Provider)
-
-		provider.DownloadChapter(chapter.Url, chapter.PathToDownload, chapter.Name)
-
-		old_path := fmt.Sprintf("%s/../cover.jpg", chapter.PathToDownload)
-		new_path := fmt.Sprintf("%s/0.jpg", chapter.PathToDownload)
-		if err = copyFile(old_path, new_path); err != nil {
-			log.Warn(err)
-			return
-		}
-
-		if err = d.CreateComicInfo(chapter.MangaId, chapter.Name, chapter.PathToDownload); err != nil {
-			log.Warn(err)
-			return
-		}
-
-		if err = d.TurnIntoCbz(chapter.PathToDownload); err != nil {
-			log.Warn(err)
-			return
-		}
-
-		if err = d.SetAsCompleted(chapter.RowId); err != nil {
-			log.Warn(err)
-			return
-		}
-
-		log.Info("[Downloader] Done!")
-	}
-}
+const maxJobRetries = 3
 
 func NewDownloader(database *sqlx.DB, mutex *sync.Mutex, cond *sync.Cond) *Downloader {
 	return &Downloader{
@@ -285,5 +43,20 @@ func NewDownloaderBy(n int, database *sqlx.DB) *DownloaderLock {
 		Cond:     newCond,
 		Mutex:    &newMutex,
 	}
+}
 
+func (d *Downloader) waitForWork() {
+	d.Mutex.Lock()
+	d.Cond.Wait()
+	d.Mutex.Unlock()
+}
+
+func (d *Downloader) notifyWorkers() {
+	d.Mutex.Lock()
+	d.Cond.Broadcast()
+	d.Mutex.Unlock()
+}
+
+func isNoRows(err error) bool {
+	return err == sql.ErrNoRows
 }

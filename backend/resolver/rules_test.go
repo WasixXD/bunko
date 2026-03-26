@@ -240,6 +240,65 @@ func TestUpdateStatusMarksCompletedWhenAllJobsAreCompleted(t *testing.T) {
 	}
 }
 
+func TestRecoverInterruptedWorkResetsDownloadingJobsToPending(t *testing.T) {
+	db := setupResolverTestDB(t)
+
+	mangaPath := t.TempDir()
+	_, err := db.Exec(`
+		INSERT INTO mangas (manga_id, name, slug, status, provider, url, manga_path)
+		VALUES (1, 'Test Manga', 'test_manga', 'downloading', 'fake', 'https://example.com/manga', ?)
+	`, mangaPath)
+	if err != nil {
+		t.Fatalf("insert manga: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO download_queue (manga_id, name, url, status, provider, path_to_download, retry_count, last_error)
+		VALUES (1, 'Chapter 1', 'https://example.com/ch1', 'downloading', 'fake', ?, 1, NULL)
+	`, filepath.Join(mangaPath, "Chapter 1"))
+	if err != nil {
+		t.Fatalf("insert queue row: %v", err)
+	}
+
+	mutex := &sync.Mutex{}
+	resolver := &Resolver{
+		Database: db,
+		Downloaders: &downloader.DownloaderLock{
+			Mutex: mutex,
+			Cond:  sync.NewCond(mutex),
+		},
+	}
+
+	if err := resolver.recoverInterruptedWork(); err != nil {
+		t.Fatalf("recoverInterruptedWork: %v", err)
+	}
+
+	var job struct {
+		Status    string `db:"status"`
+		LastError string `db:"last_error"`
+	}
+	if err := db.Get(&job, `SELECT status, COALESCE(last_error, '') AS last_error FROM download_queue WHERE manga_id = 1`); err != nil {
+		t.Fatalf("select job: %v", err)
+	}
+
+	if job.Status != "pending" {
+		t.Fatalf("expected interrupted job to be pending, got %q", job.Status)
+	}
+
+	if job.LastError == "" {
+		t.Fatalf("expected interrupted job to store a recovery message")
+	}
+
+	var mangaStatus string
+	if err := db.Get(&mangaStatus, `SELECT status FROM mangas WHERE manga_id = 1`); err != nil {
+		t.Fatalf("select manga status: %v", err)
+	}
+
+	if mangaStatus != "downloading" {
+		t.Fatalf("expected manga status downloading after recovery, got %q", mangaStatus)
+	}
+}
+
 func setupResolverTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 

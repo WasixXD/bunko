@@ -8,6 +8,9 @@ import (
 
 func (r *Resolver) Work() {
 	r.Scheduler.Start()
+	if err := r.recoverInterruptedWork(); err != nil {
+		log.Warn(err)
+	}
 	for {
 		select {
 		case <-r.CheckMangaTimer.C:

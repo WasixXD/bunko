@@ -215,6 +215,13 @@
   font-weight: 600;
 }
 
+.retry-count {
+  font-size: 0.72rem;
+  color: rgba(242, 251, 235, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .job-name {
   margin: 0;
   font-size: 1rem;
@@ -242,6 +249,39 @@
 .job-url:hover {
   text-decoration: underline;
   opacity: 1;
+}
+
+.job-error {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #ff9b90;
+}
+
+.retry-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(58, 143, 255, 0.35);
+  background: rgba(58, 143, 255, 0.1);
+  color: #7db7ff;
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retry-btn:hover:not(:disabled) {
+  background: rgba(58, 143, 255, 0.18);
+}
+
+.retry-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .empty {

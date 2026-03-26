@@ -18,4 +18,6 @@ type ChapterJobs struct {
 	Status         string `json:"status" db:"status"`
 	Provider       string `json:"provider" db:"provider"`
 	PathToDownload string `json:"path_to_download" db:"path_to_download"`
+	RetryCount     int    `json:"retry_count" db:"retry_count"`
+	LastError      string `json:"last_error" db:"last_error"`
 }

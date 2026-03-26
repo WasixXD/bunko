@@ -53,10 +53,25 @@
         <div class="card-body">
           <div class="card-top">
             <span class="provider">{{ job.provider }}</span>
+            <span class="retry-count">try {{ job.retry_count + 1 }}</span>
           </div>
           <p class="job-name">{{ job.name }}</p>
           <p class="job-path">{{ job.path_to_download }}</p>
           <a class="job-url" [href]="job.url" target="_blank" rel="noopener">{{ job.url }}</a>
+          @if (job.last_error) {
+            <p class="job-error">{{ job.last_error }}</p>
+          }
+          @if (job.status === 'error') {
+            <button class="retry-btn" type="button" [disabled]="isRetrying(job.rowid)" (click)="retryJob(job.rowid)">
+              @if (isRetrying(job.rowid)) {
+                <i class="pi pi-spin pi-spinner"></i>
+                Retrying...
+              } @else {
+                <i class="pi pi-refresh"></i>
+                Retry download
+              }
+            </button>
+          }
         </div>
       </div>
     }

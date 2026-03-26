@@ -30,7 +30,7 @@ type Resolver struct {
 	Provider  func(string) providers.Provider
 }
 
-func NewResolver(check time.Duration, db *sqlx.DB) *Resolver {
+func NewResolver(check time.Duration, db *sqlx.DB, downloaders *downloader.DownloaderLock) *Resolver {
 	s, _ := gocron.NewScheduler()
 
 	return &Resolver{
@@ -39,7 +39,7 @@ func NewResolver(check time.Duration, db *sqlx.DB) *Resolver {
 		CheckTimeRulesTimer:        *time.NewTicker(10_000 * time.Millisecond),
 		CleanupDeletedFoldersTimer: *time.NewTicker(10_000 * time.Millisecond),
 		Database:                   db,
-		Downloaders:                downloader.NewDownloaderBy(50, db),
+		Downloaders:                downloaders,
 		Scheduler:                  s,
 		TimeRules:                  map[string]string{},
 		Provider: func(name string) providers.Provider {

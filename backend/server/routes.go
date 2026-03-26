@@ -204,6 +204,23 @@ func HandleQueue(serv *services.Services) gin.HandlerFunc {
 	}
 }
 
+func HandleRetryQueueJob(serv *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing queue id"})
+			return
+		}
+
+		if err := serv.Queue.Retry(id); err != nil {
+			handleRequestError(c, err, "Could not retry the job.")
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"msg": "retry scheduled"})
+	}
+}
+
 func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.GET("/", HandleMain(serv))
 	r.GET("/quick-search/manga", HandleQuickSearchManga(serv))
@@ -215,6 +232,7 @@ func RegisterRoutes(r *gin.Engine, serv *services.Services) {
 	r.POST("/validate/path", HandleValidatePath(serv))
 	r.POST("/suggest/path", HandleSuggestPath(serv))
 	r.POST("/mangas/update-metadata/", HandleUpdateMangaMetadata(serv))
+	r.POST("/queue/retry/", HandleRetryQueueJob(serv))
 
 	r.DELETE("/mangas/delete/", HandleMangasDelete(serv))
 }

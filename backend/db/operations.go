@@ -203,7 +203,16 @@ func SetMangaCoverPath(tx *sqlx.Tx, mangaID int, coverPath string) error {
 
 func GetAllJobs(db *sqlx.DB) ([]structs.ChapterJobs, error) {
 	const query = `
-		SELECT rowid, * 
+		SELECT
+			rowid,
+			manga_id,
+			name,
+			url,
+			status,
+			provider,
+			path_to_download,
+			retry_count,
+			COALESCE(last_error, '') AS last_error
 		FROM download_queue
 	`
 	var jobs []structs.ChapterJobs
@@ -329,6 +338,41 @@ func GetAllTimeRules(db *sqlx.DB) ([]structs.Cron, error) {
 	}
 
 	return crons, nil
+}
+
+func ResetInterruptedJobs(db *sqlx.DB) (int, error) {
+	const query = `
+		UPDATE download_queue
+		SET status = 'pending',
+			last_error = CASE
+				WHEN COALESCE(last_error, '') = '' THEN 'Job interrupted while the application was offline.'
+				ELSE last_error
+			END
+		WHERE status = 'downloading'
+	`
+
+	result, err := db.Exec(query)
+	if err != nil {
+		return 0, err
+	}
+
+	rows, err := result.RowsAffected()
+	return int(rows), err
+}
+
+func CountPendingJobs(db *sqlx.DB) (int, error) {
+	const query = `
+		SELECT COUNT(*)
+		FROM download_queue
+		WHERE status = 'pending'
+	`
+
+	var total int
+	if err := db.Get(&total, query); err != nil {
+		return 0, err
+	}
+
+	return total, nil
 }
 
 func GetMangaQueueStatusCounts(db *sqlx.DB, mangaID int) (map[string]int, error) {

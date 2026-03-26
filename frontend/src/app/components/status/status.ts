@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, signal, computed, input } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, input, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { environment } from 'app/environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +13,8 @@ interface Job {
   path_to_download: string;
   provider: string;
   rowid: number;
+  retry_count: number;
+  last_error: string;
   status: JobStatus;
   url: string;
 }
@@ -26,10 +29,12 @@ interface Job {
 export class StatusComponent implements OnInit, OnDestroy {
   mangas = input<Manga[]>([]);
 
+  private http = inject(HttpClient);
   private source = new EventSource(`${environment.backendUrl}/queue`);
   jobs = signal<Job[]>([]);
   activeFilter = signal<JobStatus | 'all'>('all');
   nameQuery = signal('');
+  retryingJobs = signal<Record<number, boolean>>({});
 
   readonly filters: Array<{ label: string; value: JobStatus | 'all' }> = [
     { label: 'All', value: 'all' },
@@ -85,5 +90,21 @@ export class StatusComponent implements OnInit, OnDestroy {
 
   onNameInput(value: string) {
     this.nameQuery.set(value);
+  }
+
+  retryJob(rowId: number): void {
+    this.retryingJobs.update((current) => ({ ...current, [rowId]: true }));
+    this.http.post(`${environment.backendUrl}/queue/retry/?id=${rowId}`, {}).subscribe({
+      next: () => {
+        this.retryingJobs.update((current) => ({ ...current, [rowId]: false }));
+      },
+      error: () => {
+        this.retryingJobs.update((current) => ({ ...current, [rowId]: false }));
+      },
+    });
+  }
+
+  isRetrying(rowId: number): boolean {
+    return this.retryingJobs()[rowId] === true;
   }
 }
