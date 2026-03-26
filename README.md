@@ -38,7 +38,7 @@ services:
 
 ## Notes on AI
 
-With the exception of the frontend the entirety of this project was made by me. AI tooling was used to lint, organize and format the project. (With the exception of the last few commits that were made while testing codex)
+With the exception of the frontend the entirety of this project was made by me. AI tooling was used to lint, organize and format the project.
 
 ## Acknowledgments
 
