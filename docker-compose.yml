@@ -9,7 +9,7 @@ services:
     environment:
       TZ: ${TZ:-UTC}
       BUNKO_DATABASE: /data/bunko.db
-      BUNKO_MANGA_PATH: /library
+      BUNKO_MANGA_PATH: /library 
     volumes:
       - ./data:/data
       - ./library:/library
