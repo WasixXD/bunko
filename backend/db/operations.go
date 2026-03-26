@@ -2,6 +2,7 @@ package db
 
 import (
 	"bunko/backend/structs"
+	"database/sql"
 	"path/filepath"
 
 	"github.com/charmbracelet/log"
@@ -176,20 +177,54 @@ func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
 }
 
 func DeleteMangaById(db *sqlx.DB, id string) (int, error) {
-	const query = `
+	const selectQuery = `
+		SELECT manga_path
+		FROM mangas
+		WHERE manga_id = ?
+	`
+	const deleteQuery = `
 		DELETE FROM mangas
 		WHERE manga_id = ? 
 	`
 
-	result, err := db.Exec(query, id)
+	tx, err := db.Beginx()
+	if err != nil {
+		return -1, err
+	}
+
+	defer tx.Rollback()
+
+	var mangaPath string
+	if err := tx.Get(&mangaPath, selectQuery, id); err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return -1, err
+	}
+
+	if _, err := tx.Exec(
+		`INSERT OR IGNORE INTO deleted_manga_paths(path) VALUES (?)`,
+		mangaPath,
+	); err != nil {
+		return -1, err
+	}
+
+	result, err := tx.Exec(deleteQuery, id)
 
 	if err != nil {
 		return -1, err
 	}
 
 	rows, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
 
-	return int(rows), err
+	if err := tx.Commit(); err != nil {
+		return -1, err
+	}
+
+	return int(rows), nil
 }
 
 func AddTimeRule(db *sqlx.DB, time_rule, manga_id string) error {
@@ -234,4 +269,29 @@ func GetAllTimeRules(db *sqlx.DB) ([]structs.Cron, error) {
 	}
 
 	return crons, nil
+}
+
+func GetDeletedMangaPaths(db *sqlx.DB) ([]string, error) {
+	const query = `
+		SELECT path
+		FROM deleted_manga_paths
+		ORDER BY created_at ASC
+	`
+
+	var paths []string
+	if err := db.Select(&paths, query); err != nil {
+		return nil, err
+	}
+
+	return paths, nil
+}
+
+func DeleteQueuedMangaPath(db *sqlx.DB, path string) error {
+	const query = `
+		DELETE FROM deleted_manga_paths
+		WHERE path = ?
+	`
+
+	_, err := db.Exec(query, path)
+	return err
 }

@@ -6,6 +6,7 @@ import (
 	"bunko/backend/structs"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"testing"
 
@@ -173,14 +174,30 @@ func setupResolverTestDB(t *testing.T) *sqlx.DB {
 		t.Fatalf("open sqlite: %v", err)
 	}
 
-	migrationPath := filepath.Join("..", "migrations", "1_create_table.up.sql")
-	sqlBytes, err := os.ReadFile(migrationPath)
+	migrationsDir := filepath.Join("..", "migrations")
+	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
-		t.Fatalf("read migration: %v", err)
+		t.Fatalf("read migrations dir: %v", err)
 	}
 
-	if _, err := db.Exec(string(sqlBytes)); err != nil {
-		t.Fatalf("apply migration: %v", err)
+	migrationFiles := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+		migrationFiles = append(migrationFiles, entry.Name())
+	}
+	sort.Strings(migrationFiles)
+
+	for _, migrationFile := range migrationFiles {
+		sqlBytes, err := os.ReadFile(filepath.Join(migrationsDir, migrationFile))
+		if err != nil {
+			t.Fatalf("read migration %s: %v", migrationFile, err)
+		}
+
+		if _, err := db.Exec(string(sqlBytes)); err != nil {
+			t.Fatalf("apply migration %s: %v", migrationFile, err)
+		}
 	}
 
 	t.Cleanup(func() {

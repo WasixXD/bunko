@@ -22,6 +22,10 @@ func (r *Resolver) Work() {
 			if err := r.checkForTimeRules(); err != nil {
 				log.Warn(err)
 			}
+		case <-r.CleanupDeletedFoldersTimer.C:
+			if err := r.cleanupDeletedMangaFolders(); err != nil {
+				log.Warn(err)
+			}
 		}
 	}
 }
