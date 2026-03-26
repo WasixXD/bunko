@@ -3,7 +3,6 @@ package resolver
 import (
 	"bunko/backend/db"
 	"bunko/backend/structs"
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,50 +13,32 @@ import (
 )
 
 func (r *Resolver) checkNewManga() *structs.Manga {
-	var manga structs.Manga
-	err := r.Database.Get(
-		&manga,
-		"SELECT manga_id, name, manga_path, provider, status, url FROM mangas WHERE status = 'pending'",
-	)
-	if err == sql.ErrNoRows {
-		return nil
-	}
+	manga, err := db.GetNextPendingManga(r.Database)
 	if err != nil {
 		log.Error("[Resolver.checkNewManga] failed to query pending manga", "error", err)
 		return nil
 	}
-
-	if manga.MangaId == 0 {
+	if manga == nil {
 		return nil
 	}
 
 	log.Info("[Resolver] Found a new manga to download", "manga_id", manga.MangaId)
-	return &manga
+	return manga
 }
 
 func (r *Resolver) findChapters(mangaID int) ([]structs.Chapter, error) {
-	var mangaSource struct {
-		Provider string `db:"provider"`
-		URL      string `db:"url"`
-	}
-
-	const query = `
-		SELECT provider, url
-		FROM mangas
-		WHERE manga_id = ?
-	`
-
-	if err := r.Database.Get(&mangaSource, query, mangaID); err != nil {
+	providerName, url, err := db.GetMangaSource(r.Database, mangaID)
+	if err != nil {
 		log.Error("[Resolver.findChapters()] got error", "error", err)
 		return nil, err
 	}
 
-	provider := r.Provider(mangaSource.Provider)
+	provider := r.Provider(providerName)
 	if provider == nil {
-		return nil, fmt.Errorf("provider %q not found", mangaSource.Provider)
+		return nil, fmt.Errorf("provider %q not found", providerName)
 	}
 
-	return provider.GetAllChapters(mangaSource.URL)
+	return provider.GetAllChapters(url)
 }
 
 func (r *Resolver) downloadCover(mangaID int, mangaPath, url string) error {
@@ -80,7 +61,9 @@ func (r *Resolver) downloadCover(mangaID int, mangaPath, url string) error {
 		return err
 	}
 
-	r.Database.Exec("UPDATE mangas SET cover_path = ? WHERE manga_id = ?", url, mangaID)
+	if err := db.SetMangaCoverPathDB(r.Database, mangaID, url); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -114,7 +97,7 @@ func (r *Resolver) persistMangaData(
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", manga.MangaId); err != nil {
+	if err = db.SetMangaStatusTx(tx, manga.MangaId, "downloading"); err != nil {
 		return err
 	}
 

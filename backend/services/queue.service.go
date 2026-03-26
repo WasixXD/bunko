@@ -4,6 +4,8 @@ import (
 	"bunko/backend/db"
 	"bunko/backend/downloader"
 	"bunko/backend/structs"
+	"database/sql"
+	"strconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -18,17 +20,20 @@ func (q *QueueService) GetAll() ([]structs.ChapterJobs, error) {
 }
 
 func (q *QueueService) Retry(id string) error {
-	var rowID int
-	if err := q.db.Get(&rowID, `SELECT rowid FROM download_queue WHERE rowid = ?`, id); err != nil {
+	exists, err := db.QueueJobExists(q.db, id)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return sql.ErrNoRows
+	}
+
+	rowID, err := strconv.Atoi(id)
+	if err != nil {
 		return err
 	}
 
-	if _, err := q.db.Exec(
-		`UPDATE download_queue
-		 SET status = 'pending', retry_count = 0, last_error = NULL
-		 WHERE rowid = ?`,
-		rowID,
-	); err != nil {
+	if err := db.ResetQueueJobForRetry(q.db, rowID); err != nil {
 		return err
 	}
 

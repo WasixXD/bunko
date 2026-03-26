@@ -2,14 +2,13 @@ package downloader
 
 import (
 	"archive/zip"
+	"bunko/backend/db"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-
-	"bunko/backend/structs"
 )
 
 func (d *Downloader) TurnIntoCbz(source string) error {
@@ -83,27 +82,8 @@ func copyFile(src, dst string) error {
 }
 
 func (d *Downloader) CreateComicInfo(mangaID int, chapterName, chapterPath string) error {
-	comic := structs.ComicInfo{}
-	const query = `
-		SELECT 
-			COALESCE(m.name, '') AS series,
-			COALESCE(md.localized_name, '') AS localized_series,
-			COALESCE(md.web_link, '') AS web,
-			CASE 
-				WHEN md.publication_status = 'RELEASING' THEN 1
-				ELSE 0
-			END AS publication_status,
-			COALESCE(md.summary, '') AS summary,
-			COALESCE(md.author, '') AS writer,
-			COALESCE(md.start_year, 0) AS year,
-			COALESCE(md.start_month, 0) AS month,
-			COALESCE(md.start_day, 0) AS day
-		FROM mangas m
-		LEFT JOIN manga_metadata md ON md.manga_id = m.manga_id
-		WHERE m.manga_id = ?
-	`
-
-	if err := d.Database.Get(&comic, query, mangaID); err != nil {
+	comic, err := db.GetComicInfo(d.Database, mangaID)
+	if err != nil {
 		return err
 	}
 

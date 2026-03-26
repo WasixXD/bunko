@@ -66,6 +66,43 @@ func GetAllMangas(db *sqlx.DB) ([]structs.Manga, error) {
 	return mangas, nil
 }
 
+func GetNextPendingManga(db *sqlx.DB) (*structs.Manga, error) {
+	query := mangaSelectColumns + `
+		WHERE m.status = 'pending'
+		ORDER BY m.manga_id ASC
+		LIMIT 1
+	`
+
+	var manga structs.Manga
+	if err := db.Get(&manga, query); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &manga, nil
+}
+
+func GetMangaSource(db *sqlx.DB, mangaID int) (string, string, error) {
+	const query = `
+		SELECT provider, url
+		FROM mangas
+		WHERE manga_id = ?
+	`
+
+	var result struct {
+		Provider string `db:"provider"`
+		URL      string `db:"url"`
+	}
+
+	if err := db.Get(&result, query, mangaID); err != nil {
+		return "", "", err
+	}
+
+	return result.Provider, result.URL, nil
+}
+
 func AddChaptersToQueue(
 	tx *sqlx.Tx,
 	mangaID int,
@@ -190,6 +227,17 @@ func SetMangaStatus(db *sqlx.DB, mangaID int, status string) error {
 	return nil
 }
 
+func SetMangaStatusTx(tx *sqlx.Tx, mangaID int, status string) error {
+	const query = `
+		UPDATE mangas
+		SET status = ?
+		WHERE manga_id = ?
+	`
+
+	_, err := tx.Exec(query, status, mangaID)
+	return err
+}
+
 func SetMangaCoverPath(tx *sqlx.Tx, mangaID int, coverPath string) error {
 	const query = `
 		UPDATE mangas
@@ -198,6 +246,17 @@ func SetMangaCoverPath(tx *sqlx.Tx, mangaID int, coverPath string) error {
 	`
 
 	_, err := tx.Exec(query, coverPath, mangaID)
+	return err
+}
+
+func SetMangaCoverPathDB(db *sqlx.DB, mangaID int, coverPath string) error {
+	const query = `
+		UPDATE mangas
+		SET cover_path = ?
+		WHERE manga_id = ?
+	`
+
+	_, err := db.Exec(query, coverPath, mangaID)
 	return err
 }
 
@@ -223,6 +282,97 @@ func GetAllJobs(db *sqlx.DB) ([]structs.ChapterJobs, error) {
 	return jobs, nil
 }
 
+func ClaimNextQueueJob(db *sqlx.DB) (*structs.ChapterJobs, error) {
+	tx, err := db.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	job := &structs.ChapterJobs{}
+	const query = `
+		UPDATE download_queue
+		SET status = 'downloading'
+		WHERE rowid = (
+			SELECT rowid
+			FROM download_queue
+			WHERE status = 'pending'
+			ORDER BY manga_id DESC
+			LIMIT 1
+		)
+		RETURNING rowid, manga_id, name, url, status, provider, path_to_download, retry_count, COALESCE(last_error, '') AS last_error
+	`
+
+	if err := tx.Get(job, query); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return job, nil
+}
+
+func SetQueueJobCompleted(db *sqlx.DB, downloadID int) error {
+	const query = `
+		UPDATE download_queue
+		SET status = 'completed',
+			last_error = NULL
+		WHERE rowid = ?
+	`
+
+	_, err := db.Exec(query, downloadID)
+	return err
+}
+
+func GetQueueJobRetryCount(tx *sqlx.Tx, downloadID int) (int, error) {
+	var result struct {
+		RetryCount int `db:"retry_count"`
+	}
+
+	if err := tx.Get(&result, `SELECT retry_count FROM download_queue WHERE rowid = ?`, downloadID); err != nil {
+		return 0, err
+	}
+
+	return result.RetryCount, nil
+}
+
+func UpdateQueueJobFailure(tx *sqlx.Tx, downloadID int, status string, retryCount int, failure string) error {
+	_, err := tx.Exec(
+		`UPDATE download_queue
+		 SET status = ?, retry_count = ?, last_error = ?
+		 WHERE rowid = ?`,
+		status,
+		retryCount,
+		failure,
+		downloadID,
+	)
+	return err
+}
+
+func ResetQueueJobForRetry(db *sqlx.DB, rowID int) error {
+	_, err := db.Exec(
+		`UPDATE download_queue
+		 SET status = 'pending', retry_count = 0, last_error = NULL
+		 WHERE rowid = ?`,
+		rowID,
+	)
+	return err
+}
+
+func QueueJobExists(db *sqlx.DB, rowID string) (bool, error) {
+	var exists int
+	if err := db.Get(&exists, `SELECT 1 FROM download_queue WHERE rowid = ? LIMIT 1`, rowID); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
 	query := mangaSelectColumns + `
 		WHERE m.manga_id = ?
@@ -236,6 +386,34 @@ func GetMangaById(db *sqlx.DB, id string) (structs.Manga, error) {
 	}
 
 	return manga, nil
+}
+
+func GetComicInfo(db *sqlx.DB, mangaID int) (structs.ComicInfo, error) {
+	comic := structs.ComicInfo{}
+	const query = `
+		SELECT 
+			COALESCE(m.name, '') AS series,
+			COALESCE(md.localized_name, '') AS localized_series,
+			COALESCE(md.web_link, '') AS web,
+			CASE 
+				WHEN md.publication_status = 'RELEASING' THEN 1
+				ELSE 0
+			END AS publication_status,
+			COALESCE(md.summary, '') AS summary,
+			COALESCE(md.author, '') AS writer,
+			COALESCE(md.start_year, 0) AS year,
+			COALESCE(md.start_month, 0) AS month,
+			COALESCE(md.start_day, 0) AS day
+		FROM mangas m
+		LEFT JOIN manga_metadata md ON md.manga_id = m.manga_id
+		WHERE m.manga_id = ?
+	`
+
+	if err := db.Get(&comic, query, mangaID); err != nil {
+		return comic, err
+	}
+
+	return comic, nil
 }
 
 func nullIfEmpty(value string) any {

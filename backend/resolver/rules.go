@@ -99,7 +99,7 @@ func (r *Resolver) diffChapter(mangaID int) error {
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE mangas SET status = 'downloading' WHERE manga_id = ?", mangaID); err != nil {
+	if err = db.SetMangaStatusTx(tx, mangaID, "downloading"); err != nil {
 		return err
 	}
 
